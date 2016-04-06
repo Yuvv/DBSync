@@ -1,0 +1,58 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 2013
+VisualStudioVersion = 12.0.31101.0
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DBOps", "DBOps\DBOps.csproj", "{8236688F-1888-4318-A6A9-12EC1E245369}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FileParser", "IniFile\FileParser.csproj", "{00E32C9E-4E15-4BE2-82BA-4AEB9B2066FD}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SyncClient", "SyncClient\SyncClient.csproj", "{41B41A05-B4B5-4508-9D60-6D9711D1B46F}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SyncServer", "SyncServer\SyncServer.csproj", "{FB34C615-5E9E-48A7-8EDF-719A7022EF40}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Transport", "Transport\Transport.csproj", "{A01D60F7-F475-4950-9775-2C3721D3F16E}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DBSyncClient", "DBSyncClient\DBSyncClient.csproj", "{78BBEA8F-6BC2-44DC-A4A7-5C9BFDBF0B4C}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DBSyncServer", "DBSyncServer\DBSyncServer.csproj", "{1F6EE0DF-2B83-45EE-9581-17D7D447D23D}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{8236688F-1888-4318-A6A9-12EC1E245369}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8236688F-1888-4318-A6A9-12EC1E245369}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8236688F-1888-4318-A6A9-12EC1E245369}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8236688F-1888-4318-A6A9-12EC1E245369}.Release|Any CPU.Build.0 = Release|Any CPU
+		{00E32C9E-4E15-4BE2-82BA-4AEB9B2066FD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{00E32C9E-4E15-4BE2-82BA-4AEB9B2066FD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{00E32C9E-4E15-4BE2-82BA-4AEB9B2066FD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{00E32C9E-4E15-4BE2-82BA-4AEB9B2066FD}.Release|Any CPU.Build.0 = Release|Any CPU
+		{41B41A05-B4B5-4508-9D60-6D9711D1B46F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{41B41A05-B4B5-4508-9D60-6D9711D1B46F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{41B41A05-B4B5-4508-9D60-6D9711D1B46F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{41B41A05-B4B5-4508-9D60-6D9711D1B46F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FB34C615-5E9E-48A7-8EDF-719A7022EF40}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FB34C615-5E9E-48A7-8EDF-719A7022EF40}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FB34C615-5E9E-48A7-8EDF-719A7022EF40}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FB34C615-5E9E-48A7-8EDF-719A7022EF40}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A01D60F7-F475-4950-9775-2C3721D3F16E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A01D60F7-F475-4950-9775-2C3721D3F16E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A01D60F7-F475-4950-9775-2C3721D3F16E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A01D60F7-F475-4950-9775-2C3721D3F16E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{78BBEA8F-6BC2-44DC-A4A7-5C9BFDBF0B4C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{78BBEA8F-6BC2-44DC-A4A7-5C9BFDBF0B4C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{78BBEA8F-6BC2-44DC-A4A7-5C9BFDBF0B4C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{78BBEA8F-6BC2-44DC-A4A7-5C9BFDBF0B4C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1F6EE0DF-2B83-45EE-9581-17D7D447D23D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1F6EE0DF-2B83-45EE-9581-17D7D447D23D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1F6EE0DF-2B83-45EE-9581-17D7D447D23D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1F6EE0DF-2B83-45EE-9581-17D7D447D23D}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal

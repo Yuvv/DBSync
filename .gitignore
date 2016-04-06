@@ -1,0 +1,9 @@
+# output files
+*/bin/
+*/obj/
+*.dll
+*.pdb
+
+# VS FILES
+*.suo
+packages/
