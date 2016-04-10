@@ -22,12 +22,23 @@ namespace SyncServer
 		private StreamWriter wLog;
 		private Dictionary<string, int> lastIDs;
 
+		private bool dbConnected = false;
+		private bool listenerOpened = false;
+
 		public Server()
 		{
-			// init files
+			// init ocnfiguration file
 			this.ini = new IniFile("Config.ini");
-			this.wLog = new StreamWriter("ServerSync.log", true);
-			this.wLog.AutoFlush = true;
+
+			// init local database connection
+			this.dbConn = new MsSqlOps(getConnStr());
+			this.dbConnected = true;
+
+			// init tcp listener
+			var lIP = this.ini.ReadString("TCPServer", "IP", "0.0.0.0");
+			var lPort = this.ini.ReadInteger("TCPServer", "Port", 54321);
+			this.listener = new TcpListener(IPAddress.Parse(lIP), lPort);
+			this.listenerOpened = true;
 
 			// init last syncID
 			this.lastIDs = new Dictionary<string, int>();
@@ -36,23 +47,24 @@ namespace SyncServer
 				this.lastIDs[tableName] = this.ini.ReadInteger("LastID", tableName, 0);
 			}
 
-			// init local database connection
-			this.dbConn = new MsSqlOps(getConnStr());
-
-			// init tcp listener
-			var lIP = this.ini.ReadString("TCPServer", "IP", "0.0.0.0");
-			var lPort = this.ini.ReadInteger("TCPServer", "Port", 54321);
-			this.listener = new TcpListener(IPAddress.Parse(lIP), lPort);
+			// init log file
+			this.wLog = new StreamWriter("ServerSync.log", true);
+			this.wLog.AutoFlush = true;
 		}
 
 		public void close()
 		{
-			// TODO: 对是否初始化进行检测，防出错
-			this.log("Now closing...");
-			this.writeIDsBack();
-			this.wLog.Close();
-			this.dbConn.close();
-			this.listener.Stop();
+			if (this.dbConnected)
+			{
+				this.dbConn.close();
+			}
+			if (this.listenerOpened)
+			{
+				this.listener.Stop();
+				this.log("Now closing...");
+				this.writeIDsBack();
+				this.wLog.Close();
+			}
 		}
 
 		public string getConnStr()
@@ -125,7 +137,7 @@ namespace SyncServer
 				{
 					this.log(string.Format("Received {0} byte(s) data.", recvStr.Length));
 					DataSet dataSet = JsonConvert.DeserializeObject<DataSet>(recvStr);
-					this.dbConn.update(dataSet);
+					this.dbConn.updateDataSet(dataSet);
 
 					foreach (string tableName in Tables.TableNames)
 					{

@@ -28,7 +28,6 @@
 		/// </summary>
 		private void InitializeComponent()
 		{
-			this.components = new System.ComponentModel.Container();
 			System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(Server));
 			this.logInfoBox = new System.Windows.Forms.TextBox();
 			this.btnSaveConfig = new System.Windows.Forms.Button();
@@ -56,11 +55,11 @@
 			this.dbName = new System.Windows.Forms.TextBox();
 			this.btnExit = new System.Windows.Forms.Button();
 			this.btnLink = new System.Windows.Forms.Button();
-			this.tips = new System.Windows.Forms.ToolTip(this.components);
-			this.contextMenuStrip1 = new System.Windows.Forms.ContextMenuStrip(this.components);
+			this.tips = new System.Windows.Forms.ToolTip();
+			this.contextMenuStrip1 = new System.Windows.Forms.ContextMenuStrip();
 			this.showWinToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
 			this.exitToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-			this.myNotify = new System.Windows.Forms.NotifyIcon(this.components);
+			this.myNotify = new System.Windows.Forms.NotifyIcon();
 			this.groupBox1 = new System.Windows.Forms.GroupBox();
 			this.label1 = new System.Windows.Forms.Label();
 			((System.ComponentModel.ISupportInitialize)(this.syncCycle)).BeginInit();
@@ -380,19 +379,19 @@
             this.showWinToolStripMenuItem,
             this.exitToolStripMenuItem});
 			this.contextMenuStrip1.Name = "contextMenuStrip1";
-			this.contextMenuStrip1.Size = new System.Drawing.Size(153, 70);
+			this.contextMenuStrip1.Size = new System.Drawing.Size(125, 48);
 			// 
 			// showWinToolStripMenuItem
 			// 
 			this.showWinToolStripMenuItem.Name = "showWinToolStripMenuItem";
-			this.showWinToolStripMenuItem.Size = new System.Drawing.Size(152, 22);
+			this.showWinToolStripMenuItem.Size = new System.Drawing.Size(124, 22);
 			this.showWinToolStripMenuItem.Text = "显示窗口";
 			this.showWinToolStripMenuItem.Click += new System.EventHandler(this.showWinToolStripMenuItem_Click);
 			// 
 			// exitToolStripMenuItem
 			// 
 			this.exitToolStripMenuItem.Name = "exitToolStripMenuItem";
-			this.exitToolStripMenuItem.Size = new System.Drawing.Size(152, 22);
+			this.exitToolStripMenuItem.Size = new System.Drawing.Size(124, 22);
 			this.exitToolStripMenuItem.Text = "退出";
 			this.exitToolStripMenuItem.Click += new System.EventHandler(this.exitToolStripMenuItem_Click);
 			// 
@@ -445,6 +444,7 @@
 			this.Controls.Add(this.dbName);
 			this.Controls.Add(this.btnExit);
 			this.Controls.Add(this.btnLink);
+			this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
 			this.MaximizeBox = false;
 			this.Name = "Server";
 			this.Text = "DBSyncServer";

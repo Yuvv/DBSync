@@ -14,12 +14,29 @@ namespace DBOps
 
 		public static DataSet GetTables()
 		{
-			// TODO: 要不要给它起个名字呢？
 			DataSet dataSet = new DataSet();
 			dataSet.Tables.Add(GetStudentTable());
 			dataSet.Tables.Add(GetBookTable());
 
 			return dataSet;
+		}
+
+		public static DataTable GetTableByName(string tableName)
+		{
+			DataTable table;
+			switch (tableName)
+			{
+				case "Student":
+					table = GetStudentTable();
+					break;
+				case "Book":
+					table = GetBookTable();
+					break;
+				default:
+					table = new DataTable();
+					break;
+			}
+			return table;
 		}
 
 		public static DataTable GetBookTable()

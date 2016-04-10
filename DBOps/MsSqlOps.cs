@@ -45,7 +45,6 @@ namespace DBOps
 
 		public SqlDataReader query(string sqlStr)
 		{
-			// TODO: 搞清楚commandtype各个类型意义以及应该使用adapter还是cmd
 			this.cmd.CommandText = sqlStr;
 
 			return this.cmd.ExecuteReader();
@@ -73,27 +72,37 @@ namespace DBOps
 			return adapter;
 		}
 
-		public void update(DataSet addedDataSet)
+		public void updateDataSet(DataSet dataSet)
 		{
-			foreach (DataTable table in addedDataSet.Tables)
+			foreach (DataTable table in dataSet.Tables)
 			{
-				// TODO: 每次全部查出，效率问题？经测试只选一个也可以
 				var sql = string.Format("select top 1 * from {0}", table.TableName);
 				SqlDataAdapter adapter = select(sql);
 				SqlCommandBuilder cmdBuilder = new SqlCommandBuilder(adapter);
 				adapter.Update(table);
+				cmdBuilder.RefreshSchema();
 				cmdBuilder.Dispose();
 				adapter.Dispose();
 			}
 		}
 
-		// UNDONE: 通过此方式来实现同步
+		public void updateDateTable(DataTable table)
+		{
+			var sql = string.Format("select top 1 * from {0}", table.TableName);
+			SqlDataAdapter adapter = select(sql);
+			SqlCommandBuilder cmdBuilder = new SqlCommandBuilder(adapter);
+			adapter.Update(table);
+			cmdBuilder.RefreshSchema();
+			cmdBuilder.Dispose();
+			adapter.Dispose();
+		}
+
 		// 主动获取表结构
 		public DataTable getTable(string tableName)
 		{
 			DataTable table = new DataTable(tableName);
-			// TODO: 条件小于0？
-			SqlDataAdapter adapter = select("select * from " + tableName + " where id<0");
+			// TODO: 条件小于0？最多1个？
+			SqlDataAdapter adapter = select("select top 1 * from " + tableName + " where id<0");
 			adapter.Fill(table);
 			adapter.Dispose();
 

@@ -56,7 +56,7 @@
       <Project>{8236688f-1888-4318-a6a9-12ec1e245369}</Project>
       <Name>DBOps</Name>
     </ProjectReference>
-    <ProjectReference Include="..\IniFile\FileParser.csproj">
+    <ProjectReference Include="..\FileParser\FileParser.csproj">
       <Project>{00e32c9e-4e15-4be2-82ba-4aeb9b2066fd}</Project>
       <Name>FileParser</Name>
     </ProjectReference>

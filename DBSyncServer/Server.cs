@@ -91,7 +91,7 @@ namespace DBSyncServer
 				{
 					this.log(string.Format("Received {0} byte(s) data.", recvStr.Length));
 					DataSet dataSet = JsonConvert.DeserializeObject<DataSet>(recvStr);
-					this.dbConn.update(dataSet);
+					this.dbConn.updateDataSet(dataSet);
 
 					foreach (string tableName in Tables.TableNames)
 					{

@@ -20,7 +20,6 @@ namespace FileParser
 		{
 			// 判断文件是否存在
 			FileInfo fileInfo = new FileInfo(AFileName);
-			//Todo:搞清枚举的用法
 			if ((!fileInfo.Exists))
 			{ //|| (FileAttributes.Directory in fileInfo.Attributes))
 				//文件不存在，建立文件
@@ -130,6 +129,7 @@ namespace FileParser
 				}
 			}
 		}
+
 		//从Ini文件中，读取所有的Sections的名称
 		public void ReadSections(StringCollection SectionList)
 		{
@@ -137,9 +137,10 @@ namespace FileParser
 			byte[] Buffer = new byte[65535];
 			int bufLen = 0;
 			bufLen = GetPrivateProfileString(null, null, null, Buffer,
-			 Buffer.GetUpperBound(0), FileName);
+				Buffer.GetUpperBound(0), FileName);
 			GetStringsFromBuffer(Buffer, bufLen, SectionList);
 		}
+
 		//读取指定的Section的所有Value到列表中
 		public void ReadSectionValues(string Section, NameValueCollection Values)
 		{
@@ -149,28 +150,12 @@ namespace FileParser
 			foreach (string key in KeyList)
 			{
 				Values.Add(key, ReadString(Section, key, ""));
-
 			}
 		}
-		////读取指定的Section的所有Value到列表中，
-		//public void ReadSectionValues(string Section, NameValueCollection Values,char splitString)
-		//{　 string sectionValue;
-		//　　string[] sectionValueSplit;
-		//　　StringCollection KeyList = new StringCollection();
-		//　　ReadSection(Section, KeyList);
-		//　　Values.Clear();
-		//　　foreach (string key in KeyList)
-		//　　{
-		//　　　　sectionValue=ReadString(Section, key, "");
-		//　　　　sectionValueSplit=sectionValue.Split(splitString);
-		//　　　　Values.Add(key, sectionValueSplit[0].ToString(),sectionValueSplit[1].ToString());
-		//　　}
-		//}
 
 		//清除某个Section
 		public void EraseSection(string Section)
 		{
-			//
 			if (!WritePrivateProfileString(Section, null, null, FileName))
 			{
 
@@ -183,6 +168,7 @@ namespace FileParser
 		{
 			WritePrivateProfileString(Section, Ident, null, FileName);
 		}
+
 		//Note:对于Win9X，来说需要实现UpdateFile方法将缓冲中的数据写入文件
 		//在Win NT, 2000和XP上，都是直接写文件，没有缓冲，所以，无须实现UpdateFile
 		//执行完对Ini文件的修改之后，应该调用本方法更新缓冲区。
@@ -194,7 +180,6 @@ namespace FileParser
 		//检查某个Section下的某个键值是否存在
 		public bool ValueExists(string Section, string Ident)
 		{
-			//
 			StringCollection Idents = new StringCollection();
 			ReadSection(Section, Idents);
 			return Idents.IndexOf(Ident) > -1;

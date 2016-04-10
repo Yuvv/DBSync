@@ -7,10 +7,24 @@ namespace Transport
 	{
 		static void Main(string[] args)
 		{
+			Transporter trans = null;
 			try
 			{
-				Transporter trans = new Transporter();
+				trans = new Transporter();
 				trans.run();
+
+				// 单线程方式只能主动退出
+				Console.WriteLine("Press ESC twice to exit!");
+				while (true)
+				{
+					var key1 = Console.ReadKey();
+					var key2 = Console.ReadKey();
+					if (key1.Key == ConsoleKey.Escape && key2.Key == ConsoleKey.Escape)
+					{
+						Console.WriteLine("Now exit...");
+						break;
+					}
+				}
 			}
 			catch (Exception ex)
 			{
@@ -19,7 +33,13 @@ namespace Transport
 				sw.WriteLine(ex.ToString());
 				sw.Close();
 			}
-			Console.Read();
+			finally
+			{
+				if (trans != null)
+				{
+					trans.close();
+				}
+			}
 		}
 	}
 }

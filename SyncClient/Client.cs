@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.Specialized;
 using System.IO;
 using System.Net;
 using System.Net.Sockets;
@@ -26,6 +27,8 @@ namespace SyncClient
 		private StreamWriter wLog;
 
 		private Dictionary<string, int> lastIDs;
+		private bool dbConnected = false;
+		private bool tcpConnected = false;
 
 		private Timer timer;
 
@@ -41,18 +44,32 @@ namespace SyncClient
 			this.timer.Interval = this.ini.ReadInteger("SyncConfig", "Cycle", 5) * 1000;
 			this.timer.Elapsed += new ElapsedEventHandler(this.timerCallback);
 
-			// init last syncID
-			this.lastIDs = new Dictionary<string, int>();
-			foreach (string tableName in Tables.TableNames)
-			{
-				this.lastIDs[tableName] = this.ini.ReadInteger("LastID", tableName, 0);
-			}
-
 			// init mssql connection
 			this.dbConn = new MsSqlOps(getConnStr());
+			this.dbConnected = true;
+
+			// init last syncID and tables
+			this.lastIDs = new Dictionary<string, int>();
+			this.tables = new DataSet();
+			StringCollection tableNameKeys = new StringCollection();
+			this.ini.ReadSection("LastID", tableNameKeys);
+			foreach (string tableName in tableNameKeys)
+			{
+				this.lastIDs[tableName] = this.ini.ReadInteger("LastID", tableName, 0);
+				DataTable table = this.dbConn.getTable(tableName);
+				table.Clear();
+				this.tables.Tables.Add(table);
+			}
+
+			#region 更改shecma获取方式为自动，此处暂废弃
+			//foreach (string tableName in Tables.TableNames)
+			//{
+			//	this.lastIDs[tableName] = this.ini.ReadInteger("LastID", tableName, 0);
+			//}
 
 			// init tables;
-			this.tables = Tables.GetTables();
+			// this.tables = Tables.GetTables();
+			#endregion
 
 			// init tcp connection
 			var addr = this.ini.ReadString("TCPServer", "IP", "localhost");
@@ -62,25 +79,30 @@ namespace SyncClient
 			this.reader = new StreamReader(this.stream2Server);
 			this.writer = new StreamWriter(this.stream2Server);
 			this.writer.AutoFlush = true;
+			this.tcpConnected = true;
 		}
 
 		public void close()
 		{
 			this.log("Now closing...");
+			if (this.dbConnected)
+			{
+				this.dbConn.close();
+			}
+			this.wLog.Close();
+			if (this.tcpConnected)
+			{
+				this.writer.WriteLine("88");		// 主动say 88
+				if (this.client.Client.Connected)
+				{
+					this.client.Close();
+				}
+				this.timer.Stop();
+			}
 			foreach (string tableName in Tables.TableNames)
 			{
 				this.ini.WriteInteger("LastID", tableName, this.lastIDs[tableName]);
 			}
-			this.writer.WriteLine("88");		// 主动say 88
-			this.wLog.Close();
-			this.dbConn.close();
-			this.timer.Stop();
-			if (this.client.Client.Connected)
-			{
-				this.client.Close();
-			}
-
-			// TODO: 对是否初始化进行检测，防出错
 		}
 
 		public string getConnStr()
@@ -138,15 +160,10 @@ namespace SyncClient
 
 		private void getRecords(string tableName, int lastID, int maxSize = 10)
 		{
-			// TODO: 每次最多10？
 			var currentID = getLastID(tableName);
 			if (lastID < currentID)
 			{
 				this.log("Detect changes in table " + tableName);
-				// TODO: 使用全名称？
-				//string cols = "0";
-				//string sql = string.Format("select top {0} {1} from {2} where id>{3}",
-				//	maxSize, cols, tableName, lastID);
 
 				string sql = string.Format("select top {0} * from {1} where id>{2}",
 					maxSize, tableName, lastID);

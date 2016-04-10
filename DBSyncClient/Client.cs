@@ -118,15 +118,10 @@ namespace DBSyncClient
 
 		private void getRecords(string tableName, int lastID, int maxSize = 10)
 		{
-			// TODO: 每次最多10？
 			var currentID = getLastID(tableName);
 			if (lastID < currentID)
 			{
 				this.log("Detect changes in table " + tableName);
-				// TODO: 使用全名称？
-				//string cols = "0";
-				//string sql = string.Format("select top {0} {1} from {2} where id>{3}",
-				//	maxSize, cols, tableName, lastID);
 
 				string sql = string.Format("select top {0} * from {1} where id>{2}",
 					maxSize, tableName, lastID);

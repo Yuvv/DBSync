@@ -41,6 +41,7 @@
 			this.label4 = new System.Windows.Forms.Label();
 			this.label5 = new System.Windows.Forms.Label();
 			this.tips = new System.Windows.Forms.ToolTip(this.components);
+			this.tcpServerIP = new System.Windows.Forms.TextBox();
 			this.modeWin = new System.Windows.Forms.RadioButton();
 			this.modeSql = new System.Windows.Forms.RadioButton();
 			this.label6 = new System.Windows.Forms.Label();
@@ -49,7 +50,6 @@
 			this.label9 = new System.Windows.Forms.Label();
 			this.userName = new System.Windows.Forms.TextBox();
 			this.password = new System.Windows.Forms.TextBox();
-			this.tcpServerIP = new System.Windows.Forms.TextBox();
 			this.dbGroupBox = new System.Windows.Forms.GroupBox();
 			this.dbIP = new System.Windows.Forms.TextBox();
 			this.groupBox2 = new System.Windows.Forms.GroupBox();
@@ -170,6 +170,14 @@
 			this.label5.TabIndex = 11;
 			this.label5.Text = "监听端口";
 			// 
+			// tcpServerIP
+			// 
+			this.tcpServerIP.Location = new System.Drawing.Point(65, 26);
+			this.tcpServerIP.Name = "tcpServerIP";
+			this.tcpServerIP.Size = new System.Drawing.Size(100, 21);
+			this.tcpServerIP.TabIndex = 21;
+			this.tips.SetToolTip(this.tcpServerIP, "远端TCP服务器IP，可写成主机名或点分十进制方式");
+			// 
 			// modeWin
 			// 
 			this.modeWin.AutoSize = true;
@@ -244,14 +252,6 @@
 			this.password.PasswordChar = '*';
 			this.password.Size = new System.Drawing.Size(100, 21);
 			this.password.TabIndex = 19;
-			// 
-			// tcpServerIP
-			// 
-			this.tcpServerIP.Location = new System.Drawing.Point(65, 26);
-			this.tcpServerIP.Name = "tcpServerIP";
-			this.tcpServerIP.Size = new System.Drawing.Size(100, 21);
-			this.tcpServerIP.TabIndex = 21;
-			this.tips.SetToolTip(this.tcpServerIP, "远端TCP服务器IP，可写成主机名或点分十进制方式");
 			// 
 			// dbGroupBox
 			// 
@@ -435,6 +435,7 @@
 			this.Controls.Add(this.dbName);
 			this.Controls.Add(this.btnExit);
 			this.Controls.Add(this.btnLink);
+			this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
 			this.MaximizeBox = false;
 			this.Name = "Client";
 			this.Text = "DBSyncClient";

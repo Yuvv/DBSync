@@ -1,13 +1,11 @@
-﻿using System;
-using System.IO;
-using System.Timers;
+﻿using DBOps;
+using FileParser;
+using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Data.SqlClient;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
-using DBOps;
-using FileParser;
+using System.IO;
+using System.Timers;
 
 namespace Transport
 {
@@ -23,17 +21,31 @@ namespace Transport
 		private StreamWriter wLog;
 
 		private Dictionary<string, int> lastIDs;
+		private bool ldbConnected = false;
+		private bool rdbConnected = false;
 
 		public Transporter()
 		{
 			// init files
 			this.ini = new IniFile("Config.ini");
+			FileInfo fi = new FileInfo("Transporter.log");
+			if (fi.Length > 1024)
+			{
+				fi.MoveTo(string.Format("Transporter-{0}.log", DateTime.Now.ToShortDateString()));
+			}
 			this.wLog = new StreamWriter("Transporter.log", true);
+			this.wLog.AutoFlush = true;
 
-			// init timer
-			this.timer = new Timer();
-			this.timer.Interval = this.ini.ReadInteger("SyncConfig", "Cycle", 5) * 1000;
-			this.timer.Elapsed += new ElapsedEventHandler(this.timerCallback);
+			// init database connection
+			this.localConn = new MsSqlOps(getConnStr("LocalDBConnection"));
+			this.ldbConnected = true;
+			this.log("Local database connected!");
+			this.remoteConn = new MsSqlOps(getConnStr("RemoteDBConnection"));
+			this.rdbConnected = true;
+			this.log("Remote database connected!");
+
+			// init tables;
+			this.tables = Tables.GetTables();
 
 			// init last syncID
 			this.lastIDs = new Dictionary<string, int>();
@@ -42,20 +54,26 @@ namespace Transport
 				this.lastIDs[tableName] = this.ini.ReadInteger("LastID", tableName, 0);
 			}
 
-			// init tables;
-			this.tables = Tables.GetTables();
-
-			// init database connection
-			this.localConn = new MsSqlOps(getConnStr("LocalDBConnection"));
-			this.remoteConn = new MsSqlOps(getConnStr("RemoteDBConnection"));
+			// init timer
+			this.timer = new Timer();
+			this.timer.Interval = this.ini.ReadInteger("SyncConfig", "Cycle", 5) * 1000;
+			this.timer.Elapsed += new ElapsedEventHandler(this.timerCallback);
 		}
 
 		public void close()
 		{
+			this.wLog.WriteLine("Now closing...");
 			this.wLog.Close();
-			this.timer.Dispose();
-			this.localConn.close();
-			this.remoteConn.close();
+			if (this.ldbConnected)
+			{
+				this.localConn.close();
+			}
+			if (this.rdbConnected)
+			{
+				this.remoteConn.close();
+				this.timer.Stop();
+				this.timer.Dispose();
+			}
 		}
 
 		public string getConnStr(string section)
@@ -74,9 +92,9 @@ namespace Transport
 			else if (1 == mode)
 			{
 				var ip = this.ini.ReadString(section, "IP", "127.0.0.1");
-				var port = this.ini.ReadString(section, "Port", "1043");
-				var uid = this.ini.ReadString(section, "UID", "Administrator");
-				var pw = this.ini.ReadString(section, "PW", "");
+				var port = this.ini.ReadString(section, "Port", "1433");
+				var uid = this.ini.ReadString(section, "UID", "sa");
+				var pw = this.ini.ReadString(section, "PW", "sa");
 				builder.Add("Data Source", ip + "," + port);
 				builder.Add("User ID", uid);
 				builder.Add("Password", pw);
@@ -96,16 +114,116 @@ namespace Transport
 
 		public void log(string logStr)
 		{
+			Console.WriteLine(logStr);
 			this.wLog.WriteLine(string.Format("[{0}] {1}", DateTime.Now.ToString(), logStr));
 		}
 
+		public int getLastID(string tableName)
+		{
+			var currentID = this.lastIDs[tableName];
+			object obj = this.localConn.scalar(
+				string.Format("select ident_current('{0}')", tableName));
+			if (obj != null)
+			{
+				currentID = int.Parse(obj.ToString());
+			}
+			return currentID;
+		}
+
+		private bool getLocalRecords(string tableName, int lastID, int maxSize = 10)
+		{
+			var currentID = getLastID(tableName);
+			if (lastID < currentID)
+			{
+				this.log("Detect changes in table " + tableName);
+
+				string sql = string.Format("select top {0} * from {1} where id>{2}",
+					maxSize, tableName, lastID);
+				SqlDataAdapter adapter = this.localConn.select(sql);
+				adapter.Fill(this.tables, tableName);
+				this.log("Get " + this.tables.Tables[tableName].Rows.Count + " records.");
+
+				// 更新lastID
+				this.lastIDs[tableName] = (currentID - lastID > maxSize) ? (lastID + maxSize) : currentID;
+				// 写回lastID
+				this.ini.WriteInteger("LastID", tableName, this.lastIDs[tableName]);
+
+				return true;
+			}
+			return false;
+		}
+
+		// 复制原数据集
+		private DataSet getNewDateSet()
+		{
+			DataSet dataSet = Tables.GetTables();
+			foreach (DataTable table in this.tables.Tables)
+			{
+				foreach (DataRow row in table.Rows)
+				{
+					dataSet.Tables[table.TableName].LoadDataRow(row.ItemArray, false);
+				}
+			}
+
+			return dataSet;
+		}
+
+		//// 复制原data set
+		//private DataSet getNewDateSet()
+		//{
+		//	DataSet dataSet = Tables.GetTables();
+		//	foreach (DataTable table in this.tables.Tables)
+		//	{
+		//		foreach (DataRow row in table.Rows)
+		//		{
+		//			dataSet.Tables[table.TableName].LoadDataRow(row.ItemArray, false);
+		//		}
+		//	}
+
+		//	return dataSet;
+		//}
+
+		/// <summary>
+		/// 复制原table
+		/// </summary>
+		/// <param name="tableName">需要获取的表名</param>
+		/// <returns>返回新的复制的表</returns>
+		private DataTable getNewDataTable(string tableName)
+		{
+			DataTable newTable = Tables.GetTableByName(this.tables.Tables[tableName].TableName);
+			foreach (DataRow row in this.tables.Tables[tableName].Rows)
+			{
+				newTable.LoadDataRow(row.ItemArray, false);
+			}
+
+			return newTable;
+		}
+
+		// 计时器回调
 		private void timerCallback(object source, ElapsedEventArgs e)
 		{
-			//
+			foreach (string tableName in Tables.TableNames)
+			{
+				// 按table进行更新，防止无数据更改仍旧进行更新
+				if (getLocalRecords(tableName, this.lastIDs[tableName]))
+				{
+					this.log("Now sending data to remote host...");
+					this.remoteConn.updateDateTable(getNewDataTable(tableName));
+					this.log("Update to remote succeed!");
+				}
+			}
+
+			//this.log("Now sending data to remote host...");
+			//this.remoteConn.updateDataSet(getNewDateSet());
+			//this.log("Update to remote succeed!");
+
+			// 清空已经发送数据
+			this.tables.Clear();
 		}
 
 		public void run()
 		{
+			this.log("Now start...");
 			this.timer.Start();
 		}
 	}
