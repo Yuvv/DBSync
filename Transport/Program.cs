@@ -5,24 +5,43 @@ namespace Transport
 {
 	class Program
 	{
+		// CTRL-C 回调
+		internal static void onConsoleClose(object sender, ConsoleCancelEventArgs e)
+		{
+			if (trans != null)
+			{
+				trans.log("User closed the window.");
+				trans.close();
+			}
+		}
+
+		static Transporter trans = null;
+
 		static void Main(string[] args)
 		{
-			Transporter trans = null;
 			try
 			{
 				trans = new Transporter();
 				trans.run();
+				Console.CancelKeyPress += onConsoleClose;
 
 				// 单线程方式只能主动退出
-				Console.WriteLine("Press ESC twice to exit!");
+				Console.Title = "Press ESC to exit!";
 				while (true)
 				{
-					var key1 = Console.ReadKey();
-					var key2 = Console.ReadKey();
-					if (key1.Key == ConsoleKey.Escape && key2.Key == ConsoleKey.Escape)
+					if (!trans.timer.Enabled)
 					{
-						Console.WriteLine("Now exit...");
+						Console.WriteLine("Something seems wrong!");
 						break;
+					}
+					if (Console.KeyAvailable)
+					{
+						var key = Console.ReadKey();
+						if (key.Key == ConsoleKey.Escape)
+						{
+							Console.WriteLine("Now exit...");
+							break;
+						}
 					}
 				}
 			}

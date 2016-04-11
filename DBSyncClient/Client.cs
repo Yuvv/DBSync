@@ -31,46 +31,6 @@ namespace DBSyncClient
 			InitializeComponent();
 		}
 
-		// 启动连接
-		private void btnLink_Click(object sender, EventArgs e)
-		{
-			try
-			{
-				if (!this.dbConnected)
-				{
-					this.dbConn.connect(getConnStr());
-					this.dbConnected = true;
-					this.log("Connect to database succeed!");
-				}
-				// init tcp connection
-				string addr = this.tcpServerIP.Text;
-				int port = (int)this.tcpServerPort.Value;
-				this.client = new TcpClient(addr, port);
-				this.stream2Server = this.client.GetStream();
-				this.reader = new StreamReader(this.stream2Server);
-				this.writer = new StreamWriter(this.stream2Server);
-				this.writer.AutoFlush = true;
-				this.tcpConnected = true;
-				this.log("Connect to tcp server succeed!");
-
-				this.btnLink.Enabled = false;
-
-				// 启动计时器
-				this.log("Now starting...");
-				this.timer.Start();
-			}
-			catch (SocketException ex)
-			{
-				MessageBox.Show("连接到tcp server失败！\n" + ex.Message);
-				this.log(ex.Message);
-			}
-			catch (SqlException ex)
-			{
-				MessageBox.Show("连接到数据库失败！\n" + ex.Message);
-				this.log(ex.Message);
-			}
-		}
-
 		private string getConnStr()
 		{
 			// 参数详见 https://msdn.microsoft.com/en-us/library/system.data.sqlclient.sqlconnection.connectionstring%28v=vs.110%29.aspx
@@ -98,8 +58,8 @@ namespace DBSyncClient
 
 		private void log(string logStr)
 		{
-			//this.wLog.WriteLine(string.Format("[{0}] {1}", DateTime.Now.ToString(), logStr));
-			this.logInfoBox.AppendText(logStr);
+			this.logInfoBox.AppendText(string.Format(
+				"[{0}] {1}", DateTime.Now.ToLongTimeString(), logStr));
 			this.logInfoBox.AppendText(Environment.NewLine);
 			this.logInfoBox.ScrollToCaret();
 		}
@@ -113,6 +73,7 @@ namespace DBSyncClient
 			{
 				currentID = int.Parse(obj.ToString());
 			}
+
 			return currentID;
 		}
 
@@ -131,15 +92,56 @@ namespace DBSyncClient
 			}
 		}
 
+		// 启动连接
+		private void btnLink_Click(object sender, EventArgs e)
+		{
+			try
+			{
+				if (!this.dbConnected)
+				{
+					this.dbConn.connect(getConnStr());
+					this.dbConnected = true;
+					this.log("Connect to database succeed!");
+				}
+				// init tcp connection
+				string addr = this.tcpServerIP.Text;
+				int port = (int)this.tcpServerPort.Value;
+				this.client = new TcpClient(addr, port);
+				this.stream2Server = this.client.GetStream();
+				this.reader = new StreamReader(this.stream2Server);
+				this.writer = new StreamWriter(this.stream2Server);
+				this.writer.AutoFlush = true;
+				this.tcpConnected = true;
+				this.log("Connect to tcp server succeed!");
+
+				this.btnLink.Enabled = false;
+				this.btnExit.Enabled = true;
+
+				// 启动计时器
+				this.log("Now starting...");
+				this.timer.Interval = (int)this.syncCycle.Value * 1000;
+				this.timer.Start();
+			}
+			catch (SocketException ex)
+			{
+				MessageBox.Show("连接到tcp server失败！\n" + ex.Message);
+				this.log(ex.Message);
+			}
+			catch (SqlException ex)
+			{
+				MessageBox.Show("连接到数据库失败！\n" + ex.Message);
+				this.log(ex.Message);
+			}
+			catch (Exception ex)
+			{
+				this.log(ex.Message);
+			}
+		}
+
 		// 关闭连接
 		private void btnExit_Click(object sender, EventArgs e)
 		{
-			IniFile ini = new IniFile("Config.ini");
 			this.log("Now closing...");
-			foreach (string tableName in Tables.TableNames)
-			{
-				ini.WriteInteger("LastID", tableName, this.lastIDs[tableName]);
-			}
 			if (this.dbConnected)
 			{
 				this.dbConn.close();
@@ -156,6 +158,7 @@ namespace DBSyncClient
 				this.tcpConnected = false;
 			}
 			this.btnLink.Enabled = true;
+			this.btnExit.Enabled = false;
 		}
 
 		// timer回调
@@ -166,6 +169,7 @@ namespace DBSyncClient
 				getRecords(tableName, this.lastIDs[tableName]);
 			}
 
+			// TODO: 这里会有传空数据的问题
 			var json = JsonConvert.SerializeObject(this.tables, Formatting.None);
 
 			this.log("Now sending data to remote host...");
@@ -179,12 +183,6 @@ namespace DBSyncClient
 			{
 				this.log("Get response " + resp);
 				this.lastIDs = JsonConvert.DeserializeObject<Dictionary<string, int>>(resp);
-				// TODO: 哪种处理方式还有待考究
-				//Dictionary<string, int>  remoteIDs = JsonConvert.DeserializeObject<Dictionary<string, int>>(resp);
-				//foreach(string tableName in remoteIDs.Keys)
-				//{
-				//	if(remoteIDs[])
-				//}
 			}
 		}
 
@@ -196,6 +194,7 @@ namespace DBSyncClient
 			{
 				this.log("Missing configure file!");
 				this.log("Now load default configures.");
+				this.log("Please press save configuration button after you filled other blanks.");
 			}
 			IniFile ini = new IniFile("Config.ini");
 			var mode = ini.ReadInteger("DBConnection", "Mode", 1);
@@ -210,9 +209,9 @@ namespace DBSyncClient
 				this.modeWin.Checked = false;
 				this.dbServerName.Enabled = false;
 				this.dbIP.Text = ini.ReadString("DBConnection", "IP", "127.0.0.1");
-				this.dbPort.Value = ini.ReadInteger("DBConnection", "Port", 1043);
-				this.userName.Text = ini.ReadString("DBConnection", "UID", "Administrator");
-				this.password.Text = ini.ReadString("DBConnection", "PW", "");
+				this.dbPort.Value = ini.ReadInteger("DBConnection", "Port", 1433);
+				this.userName.Text = ini.ReadString("DBConnection", "UID", "sa");
+				this.password.Text = ini.ReadString("DBConnection", "PW", "sa");
 			}
 
 			this.dbName.Text = ini.ReadString("DBConnection", "DB", "");
@@ -221,7 +220,7 @@ namespace DBSyncClient
 			this.tcpServerPort.Value = ini.ReadInteger("TCPServer", "Port", 54321);
 			this.syncCycle.Value = ini.ReadInteger("SyncConfig", "Cycle", 5);
 
-			this.log("Load configure done!");
+			this.log("Load configuration done!");
 
 			// init last syncID
 			this.lastIDs = new Dictionary<string, int>();
@@ -230,10 +229,6 @@ namespace DBSyncClient
 				this.lastIDs[tableName] = ini.ReadInteger("LastID", tableName, 0);
 			}
 			this.log("Load last syncIDs done!");
-
-			// init timer
-			this.timer = new Timer();
-			this.timer.Interval = (int)this.syncCycle.Value * 1000;
 
 			// init mssql connection
 			this.dbConn = new MsSqlOps();
@@ -256,27 +251,17 @@ namespace DBSyncClient
 			}
 		}
 
-		private void modeWin_CheckedChanged(object sender, EventArgs e)
-		{
-			this.modeSql_CheckedChanged(sender, e);
-		}
-
 		private void btnSaveConfig_Click(object sender, EventArgs e)
 		{
 			IniFile ini = new IniFile("Config.ini");
-			if (this.modeWin.Checked)
-			{
-				ini.WriteInteger("DBConnection", "Mode", 0);
-				ini.WriteString("DBConnection", "Server", this.dbServerName.Text);
-			}
-			else
-			{
-				ini.WriteInteger("DBConnection", "Mode", 1);
-				ini.WriteString("DBConnection", "IP", this.dbIP.Text);
-				ini.WriteInteger("DBConnection", "Port", (int)this.dbPort.Value);
-				ini.WriteString("DBConnection", "UID", this.userName.Text);
-				ini.WriteString("DBConnection", "PW", this.password.Text);
-			}
+			var mode = (this.modeWin.Checked) ? 0 : 1;
+			ini.WriteInteger("DBConnection", "Mode", mode);
+
+			ini.WriteString("DBConnection", "Server", this.dbServerName.Text);
+			ini.WriteString("DBConnection", "IP", this.dbIP.Text);
+			ini.WriteInteger("DBConnection", "Port", (int)this.dbPort.Value);
+			ini.WriteString("DBConnection", "UID", this.userName.Text);
+			ini.WriteString("DBConnection", "PW", this.password.Text);
 
 			ini.WriteString("DBConnection", "DB", this.dbName.Text);
 
@@ -284,7 +269,7 @@ namespace DBSyncClient
 			ini.WriteInteger("TCPServer", "Port", (int)this.tcpServerPort.Value);
 			ini.WriteInteger("SyncConfig", "Cycle", (int)this.syncCycle.Value);
 
-			// init last syncID
+			// Write last syncIDs back
 			foreach (string tableName in Tables.TableNames)
 			{
 				ini.WriteInteger("LastID", tableName, this.lastIDs[tableName]);
@@ -330,7 +315,24 @@ namespace DBSyncClient
 		// 关闭连接并退出
 		private void Client_FormClosing(object sender, FormClosingEventArgs e)
 		{
+			if (this.tcpConnected)
+			{
+				if (MessageBox.Show(
+					"与服务器的连接尚未关闭，确认要关闭吗？",
+					"确认关闭", MessageBoxButtons.OKCancel) == DialogResult.Cancel)
+				{
+					e.Cancel = true;
+					return;
+				}
+			}
 			btnExit_Click(sender, e);
+
+			// write lastIDs back
+			IniFile ini = new IniFile("Config.ini");
+			foreach (string tableName in Tables.TableNames)
+			{
+				ini.WriteInteger("LastID", tableName, this.lastIDs[tableName]);
+			}
 		}
 	}
 }

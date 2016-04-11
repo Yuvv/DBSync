@@ -28,11 +28,10 @@
 		/// </summary>
 		private void InitializeComponent()
 		{
+			this.components = new System.ComponentModel.Container();
 			System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(Server));
 			this.logInfoBox = new System.Windows.Forms.TextBox();
 			this.btnSaveConfig = new System.Windows.Forms.Button();
-			this.syncCycle = new System.Windows.Forms.NumericUpDown();
-			this.label10 = new System.Windows.Forms.Label();
 			this.groupBox2 = new System.Windows.Forms.GroupBox();
 			this.tcpServerPort = new System.Windows.Forms.NumericUpDown();
 			this.label9 = new System.Windows.Forms.Label();
@@ -54,15 +53,14 @@
 			this.dbServerName = new System.Windows.Forms.TextBox();
 			this.dbName = new System.Windows.Forms.TextBox();
 			this.btnExit = new System.Windows.Forms.Button();
-			this.btnLink = new System.Windows.Forms.Button();
-			this.tips = new System.Windows.Forms.ToolTip();
-			this.contextMenuStrip1 = new System.Windows.Forms.ContextMenuStrip();
+			this.btnStart = new System.Windows.Forms.Button();
+			this.tips = new System.Windows.Forms.ToolTip(this.components);
+			this.contextMenuStrip1 = new System.Windows.Forms.ContextMenuStrip(this.components);
 			this.showWinToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
 			this.exitToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-			this.myNotify = new System.Windows.Forms.NotifyIcon();
+			this.myNotify = new System.Windows.Forms.NotifyIcon(this.components);
 			this.groupBox1 = new System.Windows.Forms.GroupBox();
 			this.label1 = new System.Windows.Forms.Label();
-			((System.ComponentModel.ISupportInitialize)(this.syncCycle)).BeginInit();
 			this.groupBox2.SuspendLayout();
 			((System.ComponentModel.ISupportInitialize)(this.tcpServerPort)).BeginInit();
 			this.dbGroupBox.SuspendLayout();
@@ -81,6 +79,7 @@
 			this.logInfoBox.ReadOnly = true;
 			this.logInfoBox.Size = new System.Drawing.Size(539, 131);
 			this.logInfoBox.TabIndex = 44;
+			this.logInfoBox.TabStop = false;
 			this.tips.SetToolTip(this.logInfoBox, "Log Info");
 			// 
 			// btnSaveConfig
@@ -92,38 +91,6 @@
 			this.btnSaveConfig.Text = "保存配置";
 			this.btnSaveConfig.UseVisualStyleBackColor = true;
 			this.btnSaveConfig.Click += new System.EventHandler(this.btnSaveConfig_Click);
-			// 
-			// syncCycle
-			// 
-			this.syncCycle.Location = new System.Drawing.Point(314, 208);
-			this.syncCycle.Maximum = new decimal(new int[] {
-            60,
-            0,
-            0,
-            0});
-			this.syncCycle.Minimum = new decimal(new int[] {
-            1,
-            0,
-            0,
-            0});
-			this.syncCycle.Name = "syncCycle";
-			this.syncCycle.Size = new System.Drawing.Size(100, 21);
-			this.syncCycle.TabIndex = 42;
-			this.tips.SetToolTip(this.syncCycle, "与TCP服务器同步的周期，单位为秒");
-			this.syncCycle.Value = new decimal(new int[] {
-            5,
-            0,
-            0,
-            0});
-			// 
-			// label10
-			// 
-			this.label10.AutoSize = true;
-			this.label10.Location = new System.Drawing.Point(255, 210);
-			this.label10.Name = "label10";
-			this.label10.Size = new System.Drawing.Size(53, 12);
-			this.label10.TabIndex = 41;
-			this.label10.Text = "同步周期";
 			// 
 			// groupBox2
 			// 
@@ -251,7 +218,7 @@
 			this.dbPort.TabIndex = 4;
 			this.tips.SetToolTip(this.dbPort, "数据库监听端口");
 			this.dbPort.Value = new decimal(new int[] {
-            1043,
+            1433,
             0,
             0,
             0});
@@ -314,7 +281,6 @@
 			this.modeWin.TabIndex = 37;
 			this.modeWin.Text = "Windows身份验证";
 			this.modeWin.UseVisualStyleBackColor = true;
-			this.modeWin.CheckedChanged += new System.EventHandler(this.modeWin_CheckedChanged);
 			// 
 			// label3
 			// 
@@ -341,7 +307,7 @@
 			this.dbServerName.Name = "dbServerName";
 			this.dbServerName.Size = new System.Drawing.Size(100, 21);
 			this.dbServerName.TabIndex = 34;
-			this.dbServerName.Text = "MSSQL";
+			this.dbServerName.Text = ".";
 			this.tips.SetToolTip(this.dbServerName, "数据库实例名称，默认实例为MSSQL（此时可写成 .），否则写成<主机名>\\<实例名>形式");
 			// 
 			// dbName
@@ -355,6 +321,7 @@
 			// 
 			// btnExit
 			// 
+			this.btnExit.Enabled = false;
 			this.btnExit.Location = new System.Drawing.Point(466, 170);
 			this.btnExit.Name = "btnExit";
 			this.btnExit.Size = new System.Drawing.Size(75, 23);
@@ -363,15 +330,15 @@
 			this.btnExit.UseVisualStyleBackColor = true;
 			this.btnExit.Click += new System.EventHandler(this.btnExit_Click);
 			// 
-			// btnLink
+			// btnStart
 			// 
-			this.btnLink.Location = new System.Drawing.Point(466, 112);
-			this.btnLink.Name = "btnLink";
-			this.btnLink.Size = new System.Drawing.Size(75, 23);
-			this.btnLink.TabIndex = 30;
-			this.btnLink.Text = "连接";
-			this.btnLink.UseVisualStyleBackColor = true;
-			this.btnLink.Click += new System.EventHandler(this.btnLink_Click);
+			this.btnStart.Location = new System.Drawing.Point(466, 112);
+			this.btnStart.Name = "btnStart";
+			this.btnStart.Size = new System.Drawing.Size(75, 23);
+			this.btnStart.TabIndex = 30;
+			this.btnStart.Text = "启动";
+			this.btnStart.UseVisualStyleBackColor = true;
+			this.btnStart.Click += new System.EventHandler(this.btnStart_Click);
 			// 
 			// contextMenuStrip1
 			// 
@@ -398,8 +365,8 @@
 			// myNotify
 			// 
 			this.myNotify.BalloonTipIcon = System.Windows.Forms.ToolTipIcon.Info;
-			this.myNotify.BalloonTipText = "我是内容";
-			this.myNotify.BalloonTipTitle = "标题";
+			this.myNotify.BalloonTipText = "DBSyncServer将在后台运行，你可以在这里打开它";
+			this.myNotify.BalloonTipTitle = "提示";
 			this.myNotify.ContextMenuStrip = this.contextMenuStrip1;
 			this.myNotify.Icon = ((System.Drawing.Icon)(resources.GetObject("myNotify.Icon")));
 			this.myNotify.Text = "DBSyncServer";
@@ -434,8 +401,6 @@
 			this.Controls.Add(this.groupBox1);
 			this.Controls.Add(this.logInfoBox);
 			this.Controls.Add(this.btnSaveConfig);
-			this.Controls.Add(this.syncCycle);
-			this.Controls.Add(this.label10);
 			this.Controls.Add(this.groupBox2);
 			this.Controls.Add(this.dbGroupBox);
 			this.Controls.Add(this.label3);
@@ -443,7 +408,7 @@
 			this.Controls.Add(this.dbServerName);
 			this.Controls.Add(this.dbName);
 			this.Controls.Add(this.btnExit);
-			this.Controls.Add(this.btnLink);
+			this.Controls.Add(this.btnStart);
 			this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
 			this.MaximizeBox = false;
 			this.Name = "Server";
@@ -451,7 +416,6 @@
 			this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.Server_FormClosing);
 			this.Load += new System.EventHandler(this.Server_Load);
 			this.Resize += new System.EventHandler(this.Server_Resize);
-			((System.ComponentModel.ISupportInitialize)(this.syncCycle)).EndInit();
 			this.groupBox2.ResumeLayout(false);
 			this.groupBox2.PerformLayout();
 			((System.ComponentModel.ISupportInitialize)(this.tcpServerPort)).EndInit();
@@ -469,8 +433,6 @@
 		#endregion
 
 		private System.Windows.Forms.Button btnSaveConfig;
-		private System.Windows.Forms.NumericUpDown syncCycle;
-		private System.Windows.Forms.Label label10;
 		private System.Windows.Forms.GroupBox groupBox2;
 		private System.Windows.Forms.NumericUpDown tcpServerPort;
 		private System.Windows.Forms.Label label9;
@@ -492,7 +454,7 @@
 		private System.Windows.Forms.TextBox dbServerName;
 		private System.Windows.Forms.TextBox dbName;
 		private System.Windows.Forms.Button btnExit;
-		private System.Windows.Forms.Button btnLink;
+		private System.Windows.Forms.Button btnStart;
 		private System.Windows.Forms.ToolTip tips;
 		private System.Windows.Forms.ContextMenuStrip contextMenuStrip1;
 		private System.Windows.Forms.NotifyIcon myNotify;

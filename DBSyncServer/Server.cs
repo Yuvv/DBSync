@@ -20,6 +20,7 @@ namespace DBSyncServer
 
 		private MsSqlOps dbConn;
 
+		private IniFile ini;
 		private Dictionary<string, int> lastIDs;
 
 		private bool dbConnected = false;
@@ -40,7 +41,8 @@ namespace DBSyncServer
 				this.BeginInvoke(logD, new object[] { logStr });
 				return;
 			}
-			this.logInfoBox.AppendText(logStr);
+			this.logInfoBox.AppendText(string.Format(
+				"[{0}] {1}", DateTime.Now.ToLongTimeString(), logStr));
 			this.logInfoBox.AppendText(Environment.NewLine);
 			this.logInfoBox.ScrollToCaret();
 		}
@@ -84,7 +86,6 @@ namespace DBSyncServer
 				if (recvStr == "88")
 				{
 					this.log("Client closed the connection!");
-					//this.writeIDsBack();
 					break;
 				}
 				if (!string.IsNullOrEmpty(recvStr))
@@ -95,7 +96,6 @@ namespace DBSyncServer
 
 					foreach (string tableName in Tables.TableNames)
 					{
-						//this.lastIDs[tableName] = getLastID(tableName);
 						var rowNum = dataSet.Tables[tableName].Rows.Count;
 						this.lastIDs[tableName] += rowNum;
 						if (rowNum > 0)
@@ -116,7 +116,7 @@ namespace DBSyncServer
 			client.Close();
 		}
 
-		// 需新开一个线程，防止阻塞
+		// runServer作为后台线程，防止UI线程阻塞
 		private void runServer()
 		{
 			while (true)
@@ -170,37 +170,23 @@ namespace DBSyncServer
 
 		private void btnSaveConfig_Click(object sender, EventArgs e)
 		{
-			IniFile ini = new IniFile("Config.ini");
-			if (this.modeWin.Checked)
-			{
-				ini.WriteInteger("DBConnection", "Mode", 0);
-				ini.WriteString("DBConnection", "Server", this.dbServerName.Text);
-			}
-			else
-			{
-				ini.WriteInteger("DBConnection", "Mode", 1);
-				ini.WriteString("DBConnection", "IP", this.dbIP.Text);
-				ini.WriteInteger("DBConnection", "Port", (int)this.dbPort.Value);
-				ini.WriteString("DBConnection", "UID", this.userName.Text);
-				ini.WriteString("DBConnection", "PW", this.password.Text);
-			}
+			var mode = (this.modeWin.Checked) ? 0 : 1;
+			ini.WriteInteger("DBConnection", "Mode", mode);
+			ini.WriteString("DBConnection", "Server", this.dbServerName.Text);
+			ini.WriteString("DBConnection", "IP", this.dbIP.Text);
+			ini.WriteInteger("DBConnection", "Port", (int)this.dbPort.Value);
+			ini.WriteString("DBConnection", "UID", this.userName.Text);
+			ini.WriteString("DBConnection", "PW", this.password.Text);
 
 			ini.WriteString("DBConnection", "DB", this.dbName.Text);
 
 			ini.WriteString("TCPServer", "IP", this.tcpServerIP.Text);
 			ini.WriteInteger("TCPServer", "Port", (int)this.tcpServerPort.Value);
-			ini.WriteInteger("SyncConfig", "Cycle", (int)this.syncCycle.Value);
-
-			// init last syncID
-			foreach (string tableName in Tables.TableNames)
-			{
-				ini.WriteInteger("LastID", tableName, this.lastIDs[tableName]);
-			}
 
 			this.log("Configure write done!");
 		}
 
-		private void btnLink_Click(object sender, EventArgs e)
+		private void btnStart_Click(object sender, EventArgs e)
 		{
 			try
 			{
@@ -219,7 +205,8 @@ namespace DBSyncServer
 
 				this.listener.Start();
 				this.tcpOpened = true;
-				this.btnLink.Enabled = false;
+				this.btnStart.Enabled = false;
+				this.btnExit.Enabled = true;
 				this.log("Server started!");
 
 				// 新线程开启
@@ -229,10 +216,12 @@ namespace DBSyncServer
 			}
 			catch (SqlException ex)
 			{
+				this.log("Link to database failed!");
 				this.log(ex.Message);
 			}
 			catch (SocketException ex)
 			{
+				this.log("Open tcp listener failed!");
 				this.log(ex.Message);
 			}
 		}
@@ -240,18 +229,12 @@ namespace DBSyncServer
 		// 停止tcp线程，关闭数据库和tcp listener，
 		private void btnExit_Click(object sender, EventArgs e)
 		{
-			IniFile ini = new IniFile("Config.ini");
-			this.log("Now closing...");
-			foreach (string tableName in Tables.TableNames)
-			{
-				ini.WriteInteger("LastID", tableName, this.lastIDs[tableName]);
-			}
-
 			if (this.tcpOpened)
 			{
 				if (this.dbConnected)
 				{
 					this.dbConn.close();
+					this.dbConnected = false;
 				}
 				// TODO: 关于多线程，以后可以多学学！
 				if (this.tcpThread.ThreadState != ThreadState.Unstarted)
@@ -260,12 +243,14 @@ namespace DBSyncServer
 					this.log("TCP server thread closed!");
 				}
 				this.listener.Stop();
+				this.tcpOpened = false;
 
 				this.log("Link closed!");
 				this.log("Now you can link to database and tcp server again.");
 			}
 
-			this.btnLink.Enabled = true;
+			this.btnStart.Enabled = true;
+			this.btnExit.Enabled = false;
 		}
 
 		private void modeSql_CheckedChanged(object sender, EventArgs e)
@@ -282,11 +267,6 @@ namespace DBSyncServer
 			}
 		}
 
-		private void modeWin_CheckedChanged(object sender, EventArgs e)
-		{
-			this.modeSql_CheckedChanged(sender, e);
-		}
-
 		private void Server_Load(object sender, EventArgs e)
 		{
 			FileInfo fInfo = new FileInfo("Config.ini");
@@ -294,9 +274,10 @@ namespace DBSyncServer
 			{
 				this.log("Missing configure file!");
 				this.log("Now load default configures.");
+				this.log("Please press save configuration button after you filled other blanks.");
 			}
-			IniFile ini = new IniFile("Config.ini");
-			var mode = ini.ReadInteger("DBConnection", "Mode", 1);
+			this.ini = new IniFile("Config.ini");
+			var mode = this.ini.ReadInteger("DBConnection", "Mode", 1);
 			if (0 == mode)
 			{
 				this.dbServerName.Text = ini.ReadString("DBConnection", "Server", ".");
@@ -307,32 +288,47 @@ namespace DBSyncServer
 			{
 				this.modeWin.Checked = false;
 				this.dbServerName.Enabled = false;
-				this.dbIP.Text = ini.ReadString("DBConnection", "IP", "127.0.0.1");
-				this.dbPort.Value = ini.ReadInteger("DBConnection", "Port", 1043);
-				this.userName.Text = ini.ReadString("DBConnection", "UID", "Administrator");
-				this.password.Text = ini.ReadString("DBConnection", "PW", "");
+				this.dbIP.Text = this.ini.ReadString("DBConnection", "IP", "127.0.0.1");
+				this.dbPort.Value = this.ini.ReadInteger("DBConnection", "Port", 1433);
+				this.userName.Text = this.ini.ReadString("DBConnection", "UID", "Administrator");
+				this.password.Text = this.ini.ReadString("DBConnection", "PW", "");
 			}
 
-			this.dbName.Text = ini.ReadString("DBConnection", "DB", "");
+			this.dbName.Text = this.ini.ReadString("DBConnection", "DB", "");
 
-			this.tcpServerIP.Text = ini.ReadString("TCPServer", "IP", "0.0.0.0");
-			this.tcpServerPort.Value = ini.ReadInteger("TCPServer", "Port", 54321);
-			this.syncCycle.Value = ini.ReadInteger("SyncConfig", "Cycle", 5);
+			this.tcpServerIP.Text = this.ini.ReadString("TCPServer", "IP", "0.0.0.0");
+			this.tcpServerPort.Value = this.ini.ReadInteger("TCPServer", "Port", 54321);
 
-			this.log("Load configure done!");
+			this.log("Load configuration done!");
 
 			// init last syncID
 			this.lastIDs = new Dictionary<string, int>();
 			foreach (string tableName in Tables.TableNames)
 			{
-				this.lastIDs[tableName] = ini.ReadInteger("LastID", tableName, 0);
+				this.lastIDs[tableName] = this.ini.ReadInteger("LastID", tableName, 0);
 			}
 			this.log("Load last syncIDs done!");
 		}
 
 		private void Server_FormClosing(object sender, FormClosingEventArgs e)
 		{
+			if (this.tcpOpened)
+			{
+				if (MessageBox.Show(
+					"服务器仍在监听，确认要关闭吗？",
+					"确认关闭", MessageBoxButtons.OKCancel) == DialogResult.Cancel)
+				{
+					e.Cancel = true;
+					return;
+				}
+			}
 			btnExit_Click(sender, e);
+			// write last syncIDs back
+			this.log("Now closing...");
+			foreach (string tableName in Tables.TableNames)
+			{
+				this.ini.WriteInteger("LastID", tableName, this.lastIDs[tableName]);
+			}
 		}
 	}
 }

@@ -7,11 +7,11 @@ namespace SyncServer
 	{
 		static void Main(string[] args)
 		{
-			Server server = new Server();
+			Server server = null;
 			try
 			{
+				server = new Server();
 				server.startListen();
-				//server.test();
 			}
 			catch (Exception ex)
 			{
@@ -22,7 +22,10 @@ namespace SyncServer
 			}
 			finally
 			{
-				server.close();
+				if (server != null)
+				{
+					server.close();
+				}
 			}
 		}
 	}

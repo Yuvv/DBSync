@@ -85,6 +85,7 @@
 			// 
 			// btnExit
 			// 
+			this.btnExit.Enabled = false;
 			this.btnExit.Location = new System.Drawing.Point(456, 196);
 			this.btnExit.Name = "btnExit";
 			this.btnExit.Size = new System.Drawing.Size(75, 23);
@@ -117,7 +118,7 @@
 			this.dbPort.Size = new System.Drawing.Size(100, 21);
 			this.dbPort.TabIndex = 4;
 			this.dbPort.Value = new decimal(new int[] {
-            1043,
+            1433,
             0,
             0,
             0});
@@ -128,10 +129,11 @@
 			this.dbServerName.Name = "dbServerName";
 			this.dbServerName.Size = new System.Drawing.Size(100, 21);
 			this.dbServerName.TabIndex = 6;
-			this.dbServerName.Text = "MSSQL";
+			this.dbServerName.Text = ".";
 			// 
 			// timer
 			// 
+			this.timer.Interval = 5000;
 			this.timer.Tick += new System.EventHandler(this.timer_Tick);
 			// 
 			// label2
@@ -187,7 +189,6 @@
 			this.modeWin.TabIndex = 12;
 			this.modeWin.Text = "Windows身份验证";
 			this.modeWin.UseVisualStyleBackColor = true;
-			this.modeWin.CheckedChanged += new System.EventHandler(this.modeWin_CheckedChanged);
 			// 
 			// modeSql
 			// 
@@ -320,6 +321,7 @@
 			this.label10.Size = new System.Drawing.Size(53, 12);
 			this.label10.TabIndex = 24;
 			this.label10.Text = "同步周期";
+			this.tips.SetToolTip(this.label10, "与服务器同步周期，单位为秒");
 			// 
 			// syncCycle
 			// 
@@ -378,8 +380,8 @@
 			// myNotify
 			// 
 			this.myNotify.BalloonTipIcon = System.Windows.Forms.ToolTipIcon.Info;
-			this.myNotify.BalloonTipText = "我是tip";
-			this.myNotify.BalloonTipTitle = "我是标题";
+			this.myNotify.BalloonTipText = "DBClient将在后天运行，你可以在这里找到它！";
+			this.myNotify.BalloonTipTitle = "注意";
 			this.myNotify.ContextMenuStrip = this.contextMenuStrip1;
 			this.myNotify.Icon = ((System.Drawing.Icon)(resources.GetObject("myNotify.Icon")));
 			this.myNotify.Text = "DBSyncClient";
@@ -395,6 +397,7 @@
 			this.logInfoBox.ReadOnly = true;
 			this.logInfoBox.Size = new System.Drawing.Size(519, 141);
 			this.logInfoBox.TabIndex = 29;
+			this.logInfoBox.TabStop = false;
 			// 
 			// modeGroup
 			// 

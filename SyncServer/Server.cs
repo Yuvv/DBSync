@@ -6,7 +6,6 @@ using System.Data.SqlClient;
 using System.Net;
 using System.Net.Sockets;
 using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 using DBOps;
 using FileParser;
 
@@ -84,8 +83,8 @@ namespace SyncServer
 			{
 				var ip = this.ini.ReadString("DBConnection", "IP", "127.0.0.1");
 				var port = this.ini.ReadString("DBConnection", "Port", "1043");
-				var uid = this.ini.ReadString("DBConnection", "UID", "Administrator");
-				var pw = this.ini.ReadString("DBConnection", "PW", "");
+				var uid = this.ini.ReadString("DBConnection", "UID", "sa");
+				var pw = this.ini.ReadString("DBConnection", "PW", "sa");
 				builder.Add("Data Source", ip + "," + port);
 				builder.Add("User ID", uid);
 				builder.Add("Password", pw);
@@ -142,6 +141,7 @@ namespace SyncServer
 					foreach (string tableName in Tables.TableNames)
 					{
 						//this.lastIDs[tableName] = getLastID(tableName);
+						// 将接收的的数目返回
 						var rowNum = dataSet.Tables[tableName].Rows.Count;
 						this.lastIDs[tableName] += rowNum;
 						if (rowNum > 0)

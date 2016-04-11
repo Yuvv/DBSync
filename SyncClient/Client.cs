@@ -34,19 +34,32 @@ namespace SyncClient
 
 		public Client()
 		{
-			// init files
+			// init config file
 			this.ini = new IniFile("Config.ini");
-			this.wLog = new StreamWriter("ClientSync.log", true);
-			this.wLog.AutoFlush = true;
-
-			// init timer
-			this.timer = new Timer();
-			this.timer.Interval = this.ini.ReadInteger("SyncConfig", "Cycle", 5) * 1000;
-			this.timer.Elapsed += new ElapsedEventHandler(this.timerCallback);
 
 			// init mssql connection
 			this.dbConn = new MsSqlOps(getConnStr());
 			this.dbConnected = true;
+
+			// init tcp connection
+			var addr = this.ini.ReadString("TCPServer", "IP", "localhost");
+			var port = this.ini.ReadInteger("TCPServer", "Port", 1433);
+			this.client = new TcpClient(addr, port);
+			this.stream2Server = this.client.GetStream();
+			this.reader = new StreamReader(this.stream2Server);
+			this.writer = new StreamWriter(this.stream2Server);
+			this.writer.AutoFlush = true;
+			this.tcpConnected = true;
+
+			#region 更改shecma获取方式为自动，此处暂废弃
+			//foreach (string tableName in Tables.TableNames)
+			//{
+			//	this.lastIDs[tableName] = this.ini.ReadInteger("LastID", tableName, 0);
+			//}
+
+			// init tables;
+			// this.tables = Tables.GetTables();
+			#endregion
 
 			// init last syncID and tables
 			this.lastIDs = new Dictionary<string, int>();
@@ -61,25 +74,14 @@ namespace SyncClient
 				this.tables.Tables.Add(table);
 			}
 
-			#region 更改shecma获取方式为自动，此处暂废弃
-			//foreach (string tableName in Tables.TableNames)
-			//{
-			//	this.lastIDs[tableName] = this.ini.ReadInteger("LastID", tableName, 0);
-			//}
+			// init log file
+			this.wLog = new StreamWriter("ClientSync.log", true);
+			this.wLog.AutoFlush = true;
 
-			// init tables;
-			// this.tables = Tables.GetTables();
-			#endregion
-
-			// init tcp connection
-			var addr = this.ini.ReadString("TCPServer", "IP", "localhost");
-			var port = this.ini.ReadInteger("TCPServer", "Port", 1043);
-			this.client = new TcpClient(addr, port);
-			this.stream2Server = this.client.GetStream();
-			this.reader = new StreamReader(this.stream2Server);
-			this.writer = new StreamWriter(this.stream2Server);
-			this.writer.AutoFlush = true;
-			this.tcpConnected = true;
+			// init timer
+			this.timer = new Timer();
+			this.timer.Interval = this.ini.ReadInteger("SyncConfig", "Cycle", 5) * 1000;
+			this.timer.Elapsed += new ElapsedEventHandler(this.timerCallback);
 		}
 
 		public void close()
@@ -89,7 +91,6 @@ namespace SyncClient
 			{
 				this.dbConn.close();
 			}
-			this.wLog.Close();
 			if (this.tcpConnected)
 			{
 				this.writer.WriteLine("88");		// 主动say 88
@@ -98,7 +99,9 @@ namespace SyncClient
 					this.client.Close();
 				}
 				this.timer.Stop();
+				this.wLog.Close();
 			}
+			// write last ids back
 			foreach (string tableName in Tables.TableNames)
 			{
 				this.ini.WriteInteger("LastID", tableName, this.lastIDs[tableName]);
@@ -121,9 +124,9 @@ namespace SyncClient
 			else if (1 == mode)
 			{
 				var ip = this.ini.ReadString("DBConnection", "IP", "127.0.0.1");
-				var port = this.ini.ReadString("DBConnection", "Port", "1043");
-				var uid = this.ini.ReadString("DBConnection", "UID", "Administrator");
-				var pw = this.ini.ReadString("DBConnection", "PW", "");
+				var port = this.ini.ReadString("DBConnection", "Port", "1433");
+				var uid = this.ini.ReadString("DBConnection", "UID", "sa");
+				var pw = this.ini.ReadString("DBConnection", "PW", "sa");
 				builder.Add("Data Source", ip + "," + port);
 				builder.Add("User ID", uid);
 				builder.Add("Password", pw);
@@ -180,6 +183,7 @@ namespace SyncClient
 				getRecords(tableName, this.lastIDs[tableName]);
 			}
 
+			// TODO: 传空数据的情况是否需要处理？
 			var json = JsonConvert.SerializeObject(this.tables, Formatting.None);
 
 			this.log("Now sending data to remote host...");
@@ -193,12 +197,6 @@ namespace SyncClient
 			{
 				this.log("Get response " + resp);
 				this.lastIDs = JsonConvert.DeserializeObject<Dictionary<string, int>>(resp);
-				// TODO: 哪种处理方式还有待考究
-				//Dictionary<string, int>  remoteIDs = JsonConvert.DeserializeObject<Dictionary<string, int>>(resp);
-				//foreach(string tableName in remoteIDs.Keys)
-				//{
-				//	if(remoteIDs[])
-				//}
 			}
 		}
 

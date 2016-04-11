@@ -13,15 +13,17 @@ namespace SyncClient
 				client.start();
 
 				// 单线程方式只能主动退出
-				Console.WriteLine("Press ESC twice to exit!");
+				Console.WriteLine("Press ESC to exit!");
 				while (true)
 				{
-					var key1 = Console.ReadKey();
-					var key2 = Console.ReadKey();
-					if (key1.Key == ConsoleKey.Escape && key2.Key == ConsoleKey.Escape)
+					if (Console.KeyAvailable)
 					{
-						Console.WriteLine("Now exit...");
-						break;
+						var key = Console.ReadKey();
+						if (key.Key == ConsoleKey.Escape)
+						{
+							Console.WriteLine("Now exit...");
+							break;
+						}
 					}
 				}
 			}

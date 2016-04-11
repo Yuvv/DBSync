@@ -101,10 +101,10 @@ namespace DBOps
 		public DataTable getTable(string tableName)
 		{
 			DataTable table = new DataTable(tableName);
-			// TODO: 条件小于0？最多1个？
-			SqlDataAdapter adapter = select("select top 1 * from " + tableName + " where id<0");
+			SqlDataAdapter adapter = select("select top 1 * from " + tableName);
 			adapter.Fill(table);
 			adapter.Dispose();
+			table.Clear();
 
 			return table;
 		}

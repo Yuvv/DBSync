@@ -2,6 +2,7 @@
 using FileParser;
 using System;
 using System.Collections.Generic;
+using System.Collections.Specialized;
 using System.Data;
 using System.Data.SqlClient;
 using System.IO;
@@ -15,7 +16,7 @@ namespace Transport
 		private MsSqlOps remoteConn;
 		private DataSet tables;
 
-		private Timer timer;
+		public Timer timer;
 
 		private IniFile ini;
 		private StreamWriter wLog;
@@ -28,11 +29,11 @@ namespace Transport
 		{
 			// init files
 			this.ini = new IniFile("Config.ini");
-			FileInfo fi = new FileInfo("Transporter.log");
-			if (fi.Length > 1024)
-			{
-				fi.MoveTo(string.Format("Transporter-{0}.log", DateTime.Now.ToShortDateString()));
-			}
+			//FileInfo fi = new FileInfo("Transporter.log");
+			//if (fi.Length > 20 * 1024 * 1024)
+			//{
+			//	fi.MoveTo(string.Format("Transporter-{0}.log", DateTime.Now.ToString()));
+			//}
 			this.wLog = new StreamWriter("Transporter.log", true);
 			this.wLog.AutoFlush = true;
 
@@ -121,8 +122,14 @@ namespace Transport
 		public int getLastID(string tableName)
 		{
 			var currentID = this.lastIDs[tableName];
+			//object obj = this.localConn.scalar(
+			//	string.Format("select ident_current('{0}')", tableName));
+
+			// HACK: 使用trigger实现
 			object obj = this.localConn.scalar(
-				string.Format("select ident_current('{0}')", tableName));
+				string.Format("select ident_current('trigger4{0}')", tableName));
+			// HACKEND
+
 			if (obj != null)
 			{
 				currentID = int.Parse(obj.ToString());
@@ -137,10 +144,32 @@ namespace Transport
 			{
 				this.log("Detect changes in table " + tableName);
 
-				string sql = string.Format("select top {0} * from {1} where id>{2}",
+				//string sql = string.Format("select top {0} * from {1} where id>{2}",
+				//	maxSize, tableName, lastID);
+				//SqlDataAdapter adapter = this.localConn.select(sql);
+				//adapter.Fill(this.tables, tableName);
+
+				// HACK: 使用trigger实现
+				string sql = string.Format("select top {0} pk from trigger4{1} where id>{2}",
 					maxSize, tableName, lastID);
-				SqlDataAdapter adapter = this.localConn.select(sql);
-				adapter.Fill(this.tables, tableName);
+				SqlDataReader reader = this.localConn.query(sql);
+				SqlDataAdapter adapter;
+				//string pkname = reader.GetName(0);
+				//Console.WriteLine("pkname: " + pkname);
+				StringCollection pks = new StringCollection();
+				while (reader.Read())
+				{
+					pks.Add(reader[0].ToString());
+				}
+				reader.Close();
+				foreach (string pk in pks)
+				{
+					string sqll = string.Format("select * from {0} where id={1}", tableName, pk);
+					adapter = this.localConn.select(sqll);
+					adapter.Fill(this.tables, tableName);
+				}
+				// HACKEND
+
 				this.log("Get " + this.tables.Tables[tableName].Rows.Count + " records.");
 
 				// 更新lastID
@@ -202,15 +231,27 @@ namespace Transport
 		// 计时器回调
 		private void timerCallback(object source, ElapsedEventArgs e)
 		{
-			foreach (string tableName in Tables.TableNames)
+			try
 			{
-				// 按table进行更新，防止无数据更改仍旧进行更新
-				if (getLocalRecords(tableName, this.lastIDs[tableName]))
+				foreach (string tableName in Tables.TableNames)
 				{
-					this.log("Now sending data to remote host...");
-					this.remoteConn.updateDateTable(getNewDataTable(tableName));
-					this.log("Update to remote succeed!");
+					// 按table进行更新，防止无数据更改仍旧进行更新
+					if (getLocalRecords(tableName, this.lastIDs[tableName]))
+					{
+						this.log("Now sending data to remote host...");
+						this.remoteConn.updateDateTable(getNewDataTable(tableName));
+						this.log("Update to remote succeed!");
+					}
 				}
+			}
+			catch (Exception ex)
+			{
+				this.log(ex.ToString());
+				this.timer.Close();
+				StreamWriter sw = new StreamWriter("Error.log");
+				sw.WriteLine(DateTime.Now.ToString());
+				sw.WriteLine(ex.ToString());
+				sw.Close();
 			}
 
 			//this.log("Now sending data to remote host...");
