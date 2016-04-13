@@ -123,7 +123,10 @@ namespace FileParser
 					if ((Buffer[i] == 0) && ((i - start) > 0))
 					{
 						String s = Encoding.GetEncoding(0).GetString(Buffer, start, i - start);
-						Strings.Add(s);
+						if (!s.StartsWith("#"))
+						{
+							Strings.Add(s);
+						}
 						start = i + 1;
 					}
 				}

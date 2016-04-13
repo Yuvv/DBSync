@@ -1,11 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.Specialized;
 using System.IO;
 using System.Data;
 using System.Data.SqlClient;
 using System.Net;
 using System.Net.Sockets;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using DBOps;
 using FileParser;
 
@@ -17,9 +19,11 @@ namespace SyncServer
 
 		private MsSqlOps dbConn;
 
+
 		private IniFile ini;
 		private StreamWriter wLog;
-		private Dictionary<string, int> lastIDs;
+		//private Dictionary<string, int> lastIDs;
+		//private StringCollection tableNames;
 
 		private bool dbConnected = false;
 		private bool listenerOpened = false;
@@ -39,12 +43,14 @@ namespace SyncServer
 			this.listener = new TcpListener(IPAddress.Parse(lIP), lPort);
 			this.listenerOpened = true;
 
-			// init last syncID
-			this.lastIDs = new Dictionary<string, int>();
-			foreach (string tableName in Tables.TableNames)
-			{
-				this.lastIDs[tableName] = this.ini.ReadInteger("LastID", tableName, 0);
-			}
+			// init last syncID and tables
+			//this.tableNames = new StringCollection();
+			//this.ini.ReadSection("LastID", this.tableNames);
+			//this.lastIDs = new Dictionary<string, int>();
+			//foreach (string tableName in this.tableNames)
+			//{
+			//	this.lastIDs[tableName] = this.ini.ReadInteger("LastID", tableName, 0);
+			//}
 
 			// init log file
 			this.wLog = new StreamWriter("ServerSync.log", true);
@@ -61,7 +67,7 @@ namespace SyncServer
 			{
 				this.listener.Stop();
 				this.log("Now closing...");
-				this.writeIDsBack();
+				//this.writeIDsBack();
 				this.wLog.Close();
 			}
 		}
@@ -104,16 +110,17 @@ namespace SyncServer
 
 		public void log(string logStr)
 		{
+			Console.WriteLine(logStr);
 			this.wLog.WriteLine(string.Format("[{0}] {1}", DateTime.Now.ToString(), logStr));
 		}
 
-		public void writeIDsBack()
-		{
-			foreach (string tableName in Tables.TableNames)
-			{
-				this.ini.WriteInteger("LastID", tableName, this.lastIDs[tableName]);
-			}
-		}
+		//public void writeIDsBack()
+		//{
+		//	foreach (string tableName in this.tableNames)
+		//	{
+		//		this.ini.WriteInteger("LastID", tableName, this.lastIDs[tableName]);
+		//	}
+		//}
 
 		private void clientCallback(TcpClient newClient)
 		{
@@ -129,32 +136,19 @@ namespace SyncServer
 				if (recvStr == "88")
 				{
 					this.log("Client closed the connection!");
-					this.writeIDsBack();
 					break;
 				}
 				if (!string.IsNullOrEmpty(recvStr))
 				{
 					this.log(string.Format("Received {0} byte(s) data.", recvStr.Length));
 					DataSet dataSet = JsonConvert.DeserializeObject<DataSet>(recvStr);
-					this.dbConn.updateDataSet(dataSet);
+					this.dbConn.updateDateTable(dataSet.Tables[0]);
 
-					foreach (string tableName in Tables.TableNames)
-					{
-						//this.lastIDs[tableName] = getLastID(tableName);
-						// 将接收的的数目返回
-						var rowNum = dataSet.Tables[tableName].Rows.Count;
-						this.lastIDs[tableName] += rowNum;
-						if (rowNum > 0)
-						{
-							this.log(string.Format(
-								"Insert {0} record(s) into table {1}",
-								rowNum, tableName));
-						}
-					}
+					var rowNum = dataSet.Tables[0].Rows.Count;
+					var maxID = int.Parse(dataSet.Tables[0].Rows[rowNum - 1]["SysId"].ToString());
 
-					string myLastIDs = JsonConvert.SerializeObject(this.lastIDs);
 					this.log("Now sending ACK to client...");
-					writer.WriteLine(myLastIDs);
+					writer.WriteLine(dataSet.Tables[0].TableName + "," + maxID);
 					// 释放资源
 					dataSet.Dispose();
 				}

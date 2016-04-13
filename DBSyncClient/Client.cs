@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.Specialized;
 using System.Data;
 using System.Data.SqlClient;
 using System.Windows.Forms;
@@ -19,10 +20,11 @@ namespace DBSyncClient
 		private StreamWriter writer;
 
 		private MsSqlOps dbConn;
-		private DataSet tables;
-		//private StreamWriter wLog;
+		private DataTable localTable;
 
 		private Dictionary<string, int> lastIDs;
+		private StringCollection tableNames;
+		private Dictionary<string, int[]> backoffTime;
 		private bool dbConnected = false;
 		private bool tcpConnected = false;
 
@@ -77,18 +79,45 @@ namespace DBSyncClient
 			return currentID;
 		}
 
-		private void getRecords(string tableName, int lastID, int maxSize = 10)
+		private bool getRecords(string tableName, int lastID, int maxSize = 50)
 		{
 			var currentID = getLastID(tableName);
 			if (lastID < currentID)
 			{
 				this.log("Detect changes in table " + tableName);
+				this.localTable = this.dbConn.getTable(tableName);
 
-				string sql = string.Format("select top {0} * from {1} where id>{2}",
+				string sql = string.Format("select top {0} * from {1} where sysid>{2}",
 					maxSize, tableName, lastID);
 				SqlDataAdapter adapter = this.dbConn.select(sql);
-				adapter.Fill(this.tables, tableName);
-				this.log("Get " + this.tables.Tables[tableName].Rows.Count + " records.");
+				adapter.Fill(this.localTable);
+				adapter.Dispose();
+
+				var rows = this.localTable.Rows.Count;
+				this.log("Get " + rows + " records.");
+
+				// 更新lastID
+				if (rows == 0)
+				{
+					this.lastIDs[tableName] = currentID;
+				}
+
+				return true;
+			}
+			else
+			{
+				// TODO: 关于退避时间的设计
+				if (this.backoffTime[tableName][1] > 16)
+				{
+					this.backoffTime[tableName][0] = 0;
+					this.backoffTime[tableName][1] = 2;
+				}
+				else
+				{
+					this.backoffTime[tableName][0] = this.backoffTime[tableName][1];
+					this.backoffTime[tableName][1] *= 2;
+				}
+				return false;
 			}
 		}
 
@@ -159,30 +188,44 @@ namespace DBSyncClient
 			}
 			this.btnLink.Enabled = true;
 			this.btnExit.Enabled = false;
+
+			// write lastIDs back
+			IniFile ini = new IniFile("Config.ini");
+			foreach (string tableName in this.tableNames)
+			{
+				ini.WriteInteger("LastID", tableName, this.lastIDs[tableName]);
+			}
 		}
 
 		// timer回调
 		private void timer_Tick(object sender, EventArgs e)
 		{
-			foreach (string tableName in Tables.TableNames)
+			DataSet ds = new DataSet();
+			string respStr = string.Empty;
+			foreach (string tableName in this.tableNames)
 			{
-				getRecords(tableName, this.lastIDs[tableName]);
-			}
+				// TODO: 关于退避时间的设计
+				if (this.backoffTime[tableName][0] > 0)
+				{
+					this.backoffTime[tableName][0] -= 1;
+					continue;
+				}
+				if (getRecords(tableName, this.lastIDs[tableName]))
+				{
+					ds.Tables.Add(this.localTable);
+					var json = JsonConvert.SerializeObject(ds, Formatting.None);
+					this.log("Now sending data to remote host...");
+					this.writer.WriteLine(json);
+					this.localTable.Dispose();
 
-			// TODO: 这里会有传空数据的问题
-			var json = JsonConvert.SerializeObject(this.tables, Formatting.None);
-
-			this.log("Now sending data to remote host...");
-			this.writer.WriteLine(json);
-
-			// 清空已经送数据
-			this.tables.Clear();
-
-			var resp = this.reader.ReadLine();
-			if (!string.IsNullOrEmpty(resp))
-			{
-				this.log("Get response " + resp);
-				this.lastIDs = JsonConvert.DeserializeObject<Dictionary<string, int>>(resp);
+					respStr = this.reader.ReadLine();
+					if (!string.IsNullOrEmpty(respStr))
+					{
+						string[] resp = respStr.Split(',');
+						this.lastIDs[resp[0]] = int.Parse(resp[1]);
+					}
+				}
+				ds.Dispose();
 			}
 		}
 
@@ -222,19 +265,20 @@ namespace DBSyncClient
 
 			this.log("Load configuration done!");
 
-			// init last syncID
+			// init last syncID and back-off time
+			this.tableNames = new StringCollection();
+			ini.ReadSection("LastID", this.tableNames);
 			this.lastIDs = new Dictionary<string, int>();
-			foreach (string tableName in Tables.TableNames)
+			this.backoffTime = new Dictionary<string, int[]>();
+			foreach (string tableName in this.tableNames)
 			{
 				this.lastIDs[tableName] = ini.ReadInteger("LastID", tableName, 0);
+				this.backoffTime[tableName] = new int[2] { 0, 2 };
 			}
 			this.log("Load last syncIDs done!");
 
 			// init mssql connection
 			this.dbConn = new MsSqlOps();
-
-			// init tables;
-			this.tables = Tables.GetTables();
 		}
 
 		private void modeSql_CheckedChanged(object sender, EventArgs e)
@@ -270,7 +314,7 @@ namespace DBSyncClient
 			ini.WriteInteger("SyncConfig", "Cycle", (int)this.syncCycle.Value);
 
 			// Write last syncIDs back
-			foreach (string tableName in Tables.TableNames)
+			foreach (string tableName in this.tableNames)
 			{
 				ini.WriteInteger("LastID", tableName, this.lastIDs[tableName]);
 			}
@@ -326,13 +370,6 @@ namespace DBSyncClient
 				}
 			}
 			btnExit_Click(sender, e);
-
-			// write lastIDs back
-			IniFile ini = new IniFile("Config.ini");
-			foreach (string tableName in Tables.TableNames)
-			{
-				ini.WriteInteger("LastID", tableName, this.lastIDs[tableName]);
-			}
 		}
 	}
 }

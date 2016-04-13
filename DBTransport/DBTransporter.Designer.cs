@@ -307,6 +307,7 @@
 			// 
 			// btnClose
 			// 
+			this.btnClose.Enabled = false;
 			this.btnClose.Location = new System.Drawing.Point(494, 210);
 			this.btnClose.Name = "btnClose";
 			this.btnClose.Size = new System.Drawing.Size(75, 23);

@@ -21,7 +21,7 @@ namespace DBSyncServer
 		private MsSqlOps dbConn;
 
 		private IniFile ini;
-		private Dictionary<string, int> lastIDs;
+		//private Dictionary<string, int> lastIDs;
 
 		private bool dbConnected = false;
 		private bool tcpOpened = false;
@@ -92,23 +92,13 @@ namespace DBSyncServer
 				{
 					this.log(string.Format("Received {0} byte(s) data.", recvStr.Length));
 					DataSet dataSet = JsonConvert.DeserializeObject<DataSet>(recvStr);
-					this.dbConn.updateDataSet(dataSet);
+					this.dbConn.updateDateTable(dataSet.Tables[0]);
 
-					foreach (string tableName in Tables.TableNames)
-					{
-						var rowNum = dataSet.Tables[tableName].Rows.Count;
-						this.lastIDs[tableName] += rowNum;
-						if (rowNum > 0)
-						{
-							this.log(string.Format(
-								"Insert {0} record(s) into table {1}",
-								rowNum, tableName));
-						}
-					}
+					var rowNum = dataSet.Tables[0].Rows.Count;
+					var maxID = int.Parse(dataSet.Tables[0].Rows[rowNum - 1]["SysId"].ToString());
 
-					string myLastIDs = JsonConvert.SerializeObject(this.lastIDs);
 					this.log("Now sending ACK to client...");
-					writer.WriteLine(myLastIDs);
+					writer.WriteLine(dataSet.Tables[0].TableName + "," + maxID);
 					// 释放资源
 					dataSet.Dispose();
 				}
@@ -236,7 +226,7 @@ namespace DBSyncServer
 					this.dbConn.close();
 					this.dbConnected = false;
 				}
-				// TODO: 关于多线程，以后可以多学学！
+
 				if (this.tcpThread.ThreadState != ThreadState.Unstarted)
 				{
 					this.tcpThread.Abort();
@@ -302,11 +292,11 @@ namespace DBSyncServer
 			this.log("Load configuration done!");
 
 			// init last syncID
-			this.lastIDs = new Dictionary<string, int>();
-			foreach (string tableName in Tables.TableNames)
-			{
-				this.lastIDs[tableName] = this.ini.ReadInteger("LastID", tableName, 0);
-			}
+			//this.lastIDs = new Dictionary<string, int>();
+			//foreach (string tableName in Tables.TableNames)
+			//{
+			//	this.lastIDs[tableName] = this.ini.ReadInteger("LastID", tableName, 0);
+			//}
 			this.log("Load last syncIDs done!");
 		}
 
@@ -323,12 +313,6 @@ namespace DBSyncServer
 				}
 			}
 			btnExit_Click(sender, e);
-			// write last syncIDs back
-			this.log("Now closing...");
-			foreach (string tableName in Tables.TableNames)
-			{
-				this.ini.WriteInteger("LastID", tableName, this.lastIDs[tableName]);
-			}
 		}
 	}
 }

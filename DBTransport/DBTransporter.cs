@@ -2,6 +2,7 @@
 using FileParser;
 using System;
 using System.Collections.Generic;
+using System.Collections.Specialized;
 using System.Data;
 using System.Data.SqlClient;
 using System.Windows.Forms;
@@ -12,10 +13,12 @@ namespace DBTransport
 	{
 		private MsSqlOps localConn;
 		private MsSqlOps remoteConn;
-		private DataSet tables;
+		private DataTable localTable;
 
 		private IniFile ini;
 		private Dictionary<string, int> lastIDs;
+		private StringCollection tableNames;
+		private Dictionary<string, int[]> backoffTime;
 
 		private bool ldbConnected = false;
 		private bool rdbConnected = false;
@@ -78,25 +81,48 @@ namespace DBTransport
 			return currentID;
 		}
 
-		private bool getLocalRecords(string tableName, int lastID, int maxSize = 10)
+		private bool getLocalRecords(string tableName, int lastID, int maxSize = 50)
 		{
 			var currentID = getLastID(tableName);
 			if (lastID < currentID)
 			{
 				this.log("Detect changes in table " + tableName);
+				this.localTable = this.localConn.getTable(tableName);
 
-				string sql = string.Format("select top {0} * from {1} where id>{2}",
+				string sql = string.Format("select top {0} * from {1} where sysid>{2}",
 					maxSize, tableName, lastID);
 				SqlDataAdapter adapter = this.localConn.select(sql);
-				adapter.Fill(this.tables, tableName);
-				this.log("Get " + this.tables.Tables[tableName].Rows.Count + " records.");
+				adapter.Fill(this.localTable);
+				adapter.Dispose();
+
+				var rows = this.localTable.Rows.Count;
+				this.log("Get " + rows + " records.");
 
 				// 更新lastID
-				this.lastIDs[tableName] = (currentID - lastID > maxSize) ? (lastID + maxSize) : currentID;
-				// 写回lastID
-				this.ini.WriteInteger("LastID", tableName, this.lastIDs[tableName]);
+				if (rows < maxSize)
+				{
+					this.lastIDs[tableName] = currentID;
+				}
+				else
+				{
+					this.lastIDs[tableName] = (int)this.localTable.Rows[rows - 1]["SysId"];
+				}
 
 				return true;
+			}
+			else
+			{
+				// TODO: 关于退避时间的设计
+				if (this.backoffTime[tableName][1] > 16)
+				{
+					this.backoffTime[tableName][0] = 0;
+					this.backoffTime[tableName][1] = 2;
+				}
+				else
+				{
+					this.backoffTime[tableName][0] = this.backoffTime[tableName][1];
+					this.backoffTime[tableName][1] *= 2;
+				}
 			}
 			return false;
 		}
@@ -123,8 +149,8 @@ namespace DBTransport
 		/// <returns>返回新的复制的表</returns>
 		private DataTable getNewDataTable(string tableName)
 		{
-			DataTable newTable = Tables.GetTableByName(this.tables.Tables[tableName].TableName);
-			foreach (DataRow row in this.tables.Tables[tableName].Rows)
+			DataTable newTable = this.remoteConn.getTable(tableName);
+			foreach (DataRow row in this.localTable.Rows)
 			{
 				newTable.LoadDataRow(row.ItemArray, false);
 			}
@@ -151,6 +177,7 @@ namespace DBTransport
 
 					// 成功启动则使启动无效
 					this.btnStart.Enabled = false;
+					this.btnClose.Enabled = true;
 				}
 			}
 			catch (SqlException ex)
@@ -201,6 +228,7 @@ namespace DBTransport
 					this.log("Remote database connection closed!");
 					// 全部关闭成功则使启动有效
 					this.btnStart.Enabled = true;
+					this.btnClose.Enabled = false;
 					this.log("Now you can start a new transportion.");
 				}
 				this.ldbConnected = false;
@@ -210,18 +238,22 @@ namespace DBTransport
 
 		private void timer_Tick(object sender, EventArgs e)
 		{
-			foreach (string tableName in Tables.TableNames)
+			foreach (string tableName in this.tableNames)
 			{
+				// TODO: 关于退避时间的设计
+				if (this.backoffTime[tableName][0] > 0)
+				{
+					this.backoffTime[tableName][0] -= 1;
+					continue;
+				}
 				if (getLocalRecords(tableName, this.lastIDs[tableName]))
 				{
 					// 按table进行更新，防止无数据更改仍旧进行更新
 					this.log("Now sending data to remote host...");
 					this.remoteConn.updateDateTable(getNewDataTable(tableName));
 					this.log("Update to remote succeed!");
-				}
-				else
-				{
-					this.log(tableName + " not change.");
+					// 写回lastID
+					this.ini.WriteInteger("LastID", tableName, this.lastIDs[tableName]);
 				}
 			}
 
@@ -230,7 +262,7 @@ namespace DBTransport
 			//this.log("Update to remote succeed!");
 
 			// 清空已经发送数据
-			this.tables.Clear();
+			this.localTable.Clear();
 		}
 
 		private void log(string logStr)
@@ -250,11 +282,13 @@ namespace DBTransport
 			if (0 == lmode)
 			{
 				this.lModeWin.Checked = true;
+				this.ldbGroupBox.Enabled = false;
 				this.ldbServerName.Text = this.ini.ReadString("LocalDBConnection", "Server", ".");
 			}
 			else
 			{
 				this.lModeSql.Checked = true;
+				this.ldbServerName.Enabled = false;
 				this.ldbIP.Text = this.ini.ReadString("LocalDBConnection", "IP", "127.0.0.1");
 				this.ldbPort.Value = this.ini.ReadInteger("LocalDBConnection", "Port", 1433);
 				this.lUserName.Text = this.ini.ReadString("LocalDBConnection", "UID", "sa");
@@ -267,11 +301,13 @@ namespace DBTransport
 			if (0 == rmode)
 			{
 				this.rModeWin.Checked = true;
+				this.rdbGroupBox.Enabled = false;
 				this.rdbServerName.Text = this.ini.ReadString("RemoteDBConnection", "Server", ".");
 			}
 			else
 			{
 				this.rModeSql.Checked = true;
+				this.rdbServerName.Enabled = false;
 				this.rdbIP.Text = this.ini.ReadString("RemoteDBConnection", "IP", "127.0.0.1");
 				this.rdbPort.Value = this.ini.ReadInteger("RemoteDBConnection", "Port", 1433);
 				this.rUserName.Text = this.ini.ReadString("RemoteDBConnection", "UID", "sa");
@@ -281,19 +317,20 @@ namespace DBTransport
 
 			this.log("Load config succeed!");
 
-			// init timer
-			this.timer.Interval = this.ini.ReadInteger("SyncConfig", "Cycle", 5) * 1000;
-
-			// init last syncID
+			// init last syncID and back-off time
+			this.tableNames = new StringCollection();
+			this.ini.ReadSection("LastID", this.tableNames);
 			this.lastIDs = new Dictionary<string, int>();
-			foreach (string tableName in Tables.TableNames)
+			this.backoffTime = new Dictionary<string, int[]>();
+			foreach (string tableName in this.tableNames)
 			{
 				this.lastIDs[tableName] = this.ini.ReadInteger("LastID", tableName, 0);
+				this.backoffTime[tableName] = new int[2] { 0, 2 };
 			}
 			this.log("Last sync ID loaded!");
 
-			// init tables;
-			this.tables = Tables.GetTables();
+			// init timer
+			this.timer.Interval = this.ini.ReadInteger("SyncConfig", "Cycle", 5) * 1000;
 		}
 
 		private void DBTransport_Resize(object sender, EventArgs e)

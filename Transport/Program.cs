@@ -39,6 +39,7 @@ namespace Transport
 						var key = Console.ReadKey();
 						if (key.Key == ConsoleKey.Escape)
 						{
+							trans.timer.Stop();
 							Console.WriteLine("Now exit...");
 							break;
 						}

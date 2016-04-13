@@ -7,9 +7,10 @@ namespace SyncClient
 	{
 		static void Main(string[] args)
 		{
-			Client client = new Client();
+			Client client = null;
 			try
 			{
+				client = new Client();
 				client.start();
 
 				// 单线程方式只能主动退出
@@ -36,7 +37,10 @@ namespace SyncClient
 			}
 			finally
 			{
+				if(client!=null)
+				{
 				client.close();
+				}
 			}
 		}
 	}

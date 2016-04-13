@@ -14,7 +14,7 @@ namespace Transport
 	{
 		private MsSqlOps localConn;
 		private MsSqlOps remoteConn;
-		private DataSet tables;
+		private DataTable localTable;
 
 		public Timer timer;
 
@@ -22,6 +22,9 @@ namespace Transport
 		private StreamWriter wLog;
 
 		private Dictionary<string, int> lastIDs;
+		private StringCollection tableNames;
+		private Dictionary<string, int[]> backoffTime;
+
 		private bool ldbConnected = false;
 		private bool rdbConnected = false;
 
@@ -45,14 +48,15 @@ namespace Transport
 			this.rdbConnected = true;
 			this.log("Remote database connected!");
 
-			// init tables;
-			this.tables = Tables.GetTables();
-
-			// init last syncID
+			// init last syncID and back-off time
+			this.tableNames = new StringCollection();
+			this.ini.ReadSection("LastID", this.tableNames);
 			this.lastIDs = new Dictionary<string, int>();
-			foreach (string tableName in Tables.TableNames)
+			this.backoffTime = new Dictionary<string, int[]>();
+			foreach (string tableName in this.tableNames)
 			{
 				this.lastIDs[tableName] = this.ini.ReadInteger("LastID", tableName, 0);
+				this.backoffTime[tableName] = new int[2] { 0, 2 };	// 0为计数器,2为轮次
 			}
 
 			// init timer
@@ -122,13 +126,8 @@ namespace Transport
 		public int getLastID(string tableName)
 		{
 			var currentID = this.lastIDs[tableName];
-			//object obj = this.localConn.scalar(
-			//	string.Format("select ident_current('{0}')", tableName));
-
-			// HACK: 使用trigger实现
 			object obj = this.localConn.scalar(
-				string.Format("select ident_current('trigger4{0}')", tableName));
-			// HACKEND
+				string.Format("select ident_current('{0}')", tableName));
 
 			if (obj != null)
 			{
@@ -137,80 +136,51 @@ namespace Transport
 			return currentID;
 		}
 
-		private bool getLocalRecords(string tableName, int lastID, int maxSize = 10)
+		private bool getLocalRecords(string tableName, int lastID, int maxSize = 50)
 		{
 			var currentID = getLastID(tableName);
 			if (lastID < currentID)
 			{
 				this.log("Detect changes in table " + tableName);
+				this.localTable = this.localConn.getTable(tableName);
 
-				//string sql = string.Format("select top {0} * from {1} where id>{2}",
-				//	maxSize, tableName, lastID);
-				//SqlDataAdapter adapter = this.localConn.select(sql);
-				//adapter.Fill(this.tables, tableName);
-
-				// HACK: 使用trigger实现
-				string sql = string.Format("select top {0} pk from trigger4{1} where id>{2}",
+				string sql = string.Format("select top {0} * from {1} where SysId>{2}",
 					maxSize, tableName, lastID);
-				SqlDataReader reader = this.localConn.query(sql);
-				SqlDataAdapter adapter;
-				//string pkname = reader.GetName(0);
-				//Console.WriteLine("pkname: " + pkname);
-				StringCollection pks = new StringCollection();
-				while (reader.Read())
-				{
-					pks.Add(reader[0].ToString());
-				}
-				reader.Close();
-				foreach (string pk in pks)
-				{
-					string sqll = string.Format("select * from {0} where id={1}", tableName, pk);
-					adapter = this.localConn.select(sqll);
-					adapter.Fill(this.tables, tableName);
-				}
-				// HACKEND
+				SqlDataAdapter adapter = this.localConn.select(sql);
+				adapter.Fill(this.localTable);
+				adapter.Dispose();
 
-				this.log("Get " + this.tables.Tables[tableName].Rows.Count + " records.");
+				var rows = this.localTable.Rows.Count;
+				this.log("Get " + rows + " records.");
 
 				// 更新lastID
-				this.lastIDs[tableName] = (currentID - lastID > maxSize) ? (lastID + maxSize) : currentID;
-				// 写回lastID
-				this.ini.WriteInteger("LastID", tableName, this.lastIDs[tableName]);
+				if (rows < maxSize)
+				{
+					this.lastIDs[tableName] = currentID;
+				}
+				else
+				{
+					this.lastIDs[tableName] = (int)this.localTable.Rows[rows - 1]["SysId"];
+				}
 
 				return true;
 			}
-			return false;
-		}
-
-		// 复制原数据集
-		private DataSet getNewDateSet()
-		{
-			DataSet dataSet = Tables.GetTables();
-			foreach (DataTable table in this.tables.Tables)
+			else
 			{
-				foreach (DataRow row in table.Rows)
+				// TODO: 关于退避时间的设计
+				if (this.backoffTime[tableName][1] > 16)
 				{
-					dataSet.Tables[table.TableName].LoadDataRow(row.ItemArray, false);
+					this.backoffTime[tableName][0] = 0;
+					this.backoffTime[tableName][1] = 2;
+				}
+				else
+				{
+					this.backoffTime[tableName][0] = this.backoffTime[tableName][1];
+					this.backoffTime[tableName][1] *= 2;
 				}
 			}
-
-			return dataSet;
+			return false;
 		}
-
-		//// 复制原data set
-		//private DataSet getNewDateSet()
-		//{
-		//	DataSet dataSet = Tables.GetTables();
-		//	foreach (DataTable table in this.tables.Tables)
-		//	{
-		//		foreach (DataRow row in table.Rows)
-		//		{
-		//			dataSet.Tables[table.TableName].LoadDataRow(row.ItemArray, false);
-		//		}
-		//	}
-
-		//	return dataSet;
-		//}
 
 		/// <summary>
 		/// 复制原table
@@ -219,8 +189,8 @@ namespace Transport
 		/// <returns>返回新的复制的表</returns>
 		private DataTable getNewDataTable(string tableName)
 		{
-			DataTable newTable = Tables.GetTableByName(this.tables.Tables[tableName].TableName);
-			foreach (DataRow row in this.tables.Tables[tableName].Rows)
+			DataTable newTable = this.remoteConn.getTable(tableName);
+			foreach (DataRow row in this.localTable.Rows)
 			{
 				newTable.LoadDataRow(row.ItemArray, false);
 			}
@@ -233,13 +203,22 @@ namespace Transport
 		{
 			try
 			{
-				foreach (string tableName in Tables.TableNames)
+				// 按table进行更新，防止无数据更改仍旧进行更新
+				foreach (string tableName in this.tableNames)
 				{
-					// 按table进行更新，防止无数据更改仍旧进行更新
+					// TODO: 关于退避时间的设计
+					if (this.backoffTime[tableName][0] > 0)
+					{
+						this.backoffTime[tableName][0] -= 1;
+						continue;
+					}
+
 					if (getLocalRecords(tableName, this.lastIDs[tableName]))
 					{
 						this.log("Now sending data to remote host...");
 						this.remoteConn.updateDateTable(getNewDataTable(tableName));
+						// 写回lastID
+						this.ini.WriteInteger("LastID", tableName, this.lastIDs[tableName]);
 						this.log("Update to remote succeed!");
 					}
 				}
@@ -259,7 +238,8 @@ namespace Transport
 			//this.log("Update to remote succeed!");
 
 			// 清空已经发送数据
-			this.tables.Clear();
+			this.localTable.Clear();
+			this.localTable.Dispose();
 		}
 
 		public void run()

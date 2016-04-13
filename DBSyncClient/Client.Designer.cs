@@ -42,6 +42,7 @@
 			this.label5 = new System.Windows.Forms.Label();
 			this.tips = new System.Windows.Forms.ToolTip(this.components);
 			this.tcpServerIP = new System.Windows.Forms.TextBox();
+			this.label10 = new System.Windows.Forms.Label();
 			this.modeWin = new System.Windows.Forms.RadioButton();
 			this.modeSql = new System.Windows.Forms.RadioButton();
 			this.label6 = new System.Windows.Forms.Label();
@@ -54,7 +55,6 @@
 			this.dbIP = new System.Windows.Forms.TextBox();
 			this.groupBox2 = new System.Windows.Forms.GroupBox();
 			this.tcpServerPort = new System.Windows.Forms.NumericUpDown();
-			this.label10 = new System.Windows.Forms.Label();
 			this.syncCycle = new System.Windows.Forms.NumericUpDown();
 			this.btnSaveConfig = new System.Windows.Forms.Button();
 			this.contextMenuStrip1 = new System.Windows.Forms.ContextMenuStrip(this.components);
@@ -125,6 +125,7 @@
 			// 
 			// dbServerName
 			// 
+			this.dbServerName.Enabled = false;
 			this.dbServerName.Location = new System.Drawing.Point(321, 23);
 			this.dbServerName.Name = "dbServerName";
 			this.dbServerName.Size = new System.Drawing.Size(100, 21);
@@ -179,6 +180,16 @@
 			this.tcpServerIP.Size = new System.Drawing.Size(100, 21);
 			this.tcpServerIP.TabIndex = 21;
 			this.tips.SetToolTip(this.tcpServerIP, "远端TCP服务器IP，可写成主机名或点分十进制方式");
+			// 
+			// label10
+			// 
+			this.label10.AutoSize = true;
+			this.label10.Location = new System.Drawing.Point(257, 193);
+			this.label10.Name = "label10";
+			this.label10.Size = new System.Drawing.Size(53, 12);
+			this.label10.TabIndex = 24;
+			this.label10.Text = "同步周期";
+			this.tips.SetToolTip(this.label10, "与服务器同步周期，单位为秒");
 			// 
 			// modeWin
 			// 
@@ -313,16 +324,6 @@
             0,
             0});
 			// 
-			// label10
-			// 
-			this.label10.AutoSize = true;
-			this.label10.Location = new System.Drawing.Point(257, 193);
-			this.label10.Name = "label10";
-			this.label10.Size = new System.Drawing.Size(53, 12);
-			this.label10.TabIndex = 24;
-			this.label10.Text = "同步周期";
-			this.tips.SetToolTip(this.label10, "与服务器同步周期，单位为秒");
-			// 
 			// syncCycle
 			// 
 			this.syncCycle.Location = new System.Drawing.Point(316, 191);
@@ -380,7 +381,7 @@
 			// myNotify
 			// 
 			this.myNotify.BalloonTipIcon = System.Windows.Forms.ToolTipIcon.Info;
-			this.myNotify.BalloonTipText = "DBClient将在后天运行，你可以在这里找到它！";
+			this.myNotify.BalloonTipText = "DBClient将在后台运行，你可以在这里找到它！";
 			this.myNotify.BalloonTipTitle = "注意";
 			this.myNotify.ContextMenuStrip = this.contextMenuStrip1;
 			this.myNotify.Icon = ((System.Drawing.Icon)(resources.GetObject("myNotify.Icon")));

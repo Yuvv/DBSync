@@ -22,11 +22,13 @@ namespace SyncClient
 		private StreamWriter writer;
 
 		private MsSqlOps dbConn;
-		private DataSet tables;
+		private DataTable localTable;
 		private IniFile ini;
 		private StreamWriter wLog;
 
 		private Dictionary<string, int> lastIDs;
+		private StringCollection tableNames;
+		private Dictionary<string, int[]> backoffTime;
 		private bool dbConnected = false;
 		private bool tcpConnected = false;
 
@@ -51,27 +53,15 @@ namespace SyncClient
 			this.writer.AutoFlush = true;
 			this.tcpConnected = true;
 
-			#region 更改shecma获取方式为自动，此处暂废弃
-			//foreach (string tableName in Tables.TableNames)
-			//{
-			//	this.lastIDs[tableName] = this.ini.ReadInteger("LastID", tableName, 0);
-			//}
-
-			// init tables;
-			// this.tables = Tables.GetTables();
-			#endregion
-
 			// init last syncID and tables
+			this.tableNames = new StringCollection();
+			this.ini.ReadSection("LastID", this.tableNames);
 			this.lastIDs = new Dictionary<string, int>();
-			this.tables = new DataSet();
-			StringCollection tableNameKeys = new StringCollection();
-			this.ini.ReadSection("LastID", tableNameKeys);
-			foreach (string tableName in tableNameKeys)
+			this.backoffTime = new Dictionary<string, int[]>();
+			foreach (string tableName in this.tableNames)
 			{
 				this.lastIDs[tableName] = this.ini.ReadInteger("LastID", tableName, 0);
-				DataTable table = this.dbConn.getTable(tableName);
-				table.Clear();
-				this.tables.Tables.Add(table);
+				this.backoffTime[tableName] = new int[2] { 0, 2 };
 			}
 
 			// init log file
@@ -102,7 +92,7 @@ namespace SyncClient
 				this.wLog.Close();
 			}
 			// write last ids back
-			foreach (string tableName in Tables.TableNames)
+			foreach (string tableName in this.tableNames)
 			{
 				this.ini.WriteInteger("LastID", tableName, this.lastIDs[tableName]);
 			}
@@ -146,6 +136,7 @@ namespace SyncClient
 
 		public void log(string logStr)
 		{
+			Console.WriteLine(logStr);
 			this.wLog.WriteLine(string.Format("[{0}] {1}", DateTime.Now.ToString(), logStr));
 		}
 
@@ -161,42 +152,86 @@ namespace SyncClient
 			return currentID;
 		}
 
-		private void getRecords(string tableName, int lastID, int maxSize = 10)
+		private bool getRecords(string tableName, int lastID, int maxSize = 50)
 		{
 			var currentID = getLastID(tableName);
 			if (lastID < currentID)
 			{
 				this.log("Detect changes in table " + tableName);
+				this.localTable = this.dbConn.getTable(tableName);
 
-				string sql = string.Format("select top {0} * from {1} where id>{2}",
+				string sql = string.Format("select top {0} * from {1} where sysid>{2}",
 					maxSize, tableName, lastID);
 				SqlDataAdapter adapter = this.dbConn.select(sql);
-				adapter.Fill(this.tables, tableName);
-				this.log("Get " + this.tables.Tables[tableName].Rows.Count + " records.");
+				adapter.Fill(this.localTable);
+				adapter.Dispose();
+
+				var rows = this.localTable.Rows.Count;
+				this.log("Get " + rows + " records.");
+
+				// 更新lastID
+				if (rows == 0)
+				{
+					this.lastIDs[tableName] = currentID;
+				}
+				//if (rows < maxSize)
+				//{
+				//	this.lastIDs[tableName] = currentID;
+				//}
+				//else
+				//{
+				//	this.lastIDs[tableName] = (int)this.localTable.Rows[rows - 1]["SysId"];
+				//}
+
+				return true;
+			}
+			else
+			{
+				// TODO: 关于退避时间的设计
+				if (this.backoffTime[tableName][1] > 16)
+				{
+					this.backoffTime[tableName][0] = 0;
+					this.backoffTime[tableName][1] = 2;
+				}
+				else
+				{
+					this.backoffTime[tableName][0] = this.backoffTime[tableName][1];
+					this.backoffTime[tableName][1] *= 2;
+				}
+				return false;
 			}
 		}
 
 		private void timerCallback(object source, ElapsedEventArgs e)
 		{
-			foreach (string tableName in Tables.TableNames)
+			DataSet ds = new DataSet();
+			string respStr = string.Empty;
+			foreach (string tableName in this.tableNames)
 			{
-				getRecords(tableName, this.lastIDs[tableName]);
-			}
+				// TODO: 关于退避时间的设计
+				if (this.backoffTime[tableName][0] > 0)
+				{
+					this.backoffTime[tableName][0] -= 1;
+					continue;
+				}
+				if (getRecords(tableName, this.lastIDs[tableName]))
+				{
+					ds.Tables.Add(this.localTable);
+					var json = JsonConvert.SerializeObject(ds, Formatting.None);
+					this.log("Now sending data to remote host...");
+					this.writer.WriteLine(json);
+					this.localTable.Dispose();
 
-			// TODO: 传空数据的情况是否需要处理？
-			var json = JsonConvert.SerializeObject(this.tables, Formatting.None);
-
-			this.log("Now sending data to remote host...");
-			this.writer.WriteLine(json);
-
-			// 清空已经送数据
-			this.tables.Clear();
-
-			var resp = this.reader.ReadLine();
-			if (!string.IsNullOrEmpty(resp))
-			{
-				this.log("Get response " + resp);
-				this.lastIDs = JsonConvert.DeserializeObject<Dictionary<string, int>>(resp);
+					respStr = this.reader.ReadLine();
+					if (!string.IsNullOrEmpty(respStr))
+					{
+						string[] resp = respStr.Split(',');
+						this.lastIDs[resp[0]] = int.Parse(resp[1]);
+						// 写回lastID
+						this.ini.WriteInteger("LastID", tableName, this.lastIDs[tableName]);
+					}
+				}
+				ds.Clear();
 			}
 		}
 
