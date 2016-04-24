@@ -250,7 +250,7 @@ namespace DBTransport
 				{
 					// 按table进行更新，防止无数据更改仍旧进行更新
 					this.log("Now sending data to remote host...");
-					this.remoteConn.updateDateTable(getNewDataTable(tableName));
+					this.remoteConn.updateDataTable(getNewDataTable(tableName));
 					this.log("Update to remote succeed!");
 					// 写回lastID
 					this.ini.WriteInteger("LastID", tableName, this.lastIDs[tableName]);

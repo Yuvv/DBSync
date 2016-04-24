@@ -216,7 +216,7 @@ namespace Transport
 					if (getLocalRecords(tableName, this.lastIDs[tableName]))
 					{
 						this.log("Now sending data to remote host...");
-						this.remoteConn.updateDateTable(getNewDataTable(tableName));
+						this.remoteConn.updateDataTable(getNewDataTable(tableName));
 						// 写回lastID
 						this.ini.WriteInteger("LastID", tableName, this.lastIDs[tableName]);
 						this.log("Update to remote succeed!");

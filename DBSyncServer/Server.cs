@@ -92,7 +92,7 @@ namespace DBSyncServer
 				{
 					this.log(string.Format("Received {0} byte(s) data.", recvStr.Length));
 					DataSet dataSet = JsonConvert.DeserializeObject<DataSet>(recvStr);
-					this.dbConn.updateDateTable(dataSet.Tables[0]);
+					this.dbConn.updateDataTable(dataSet.Tables[0]);
 
 					var rowNum = dataSet.Tables[0].Rows.Count;
 					var maxID = int.Parse(dataSet.Tables[0].Rows[rowNum - 1]["SysId"].ToString());

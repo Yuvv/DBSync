@@ -76,17 +76,11 @@ namespace DBOps
 		{
 			foreach (DataTable table in dataSet.Tables)
 			{
-				var sql = string.Format("select top 1 * from {0}", table.TableName);
-				SqlDataAdapter adapter = select(sql);
-				SqlCommandBuilder cmdBuilder = new SqlCommandBuilder(adapter);
-				adapter.Update(table);
-				cmdBuilder.RefreshSchema();
-				cmdBuilder.Dispose();
-				adapter.Dispose();
+				updateDataTable(table);
 			}
 		}
 
-		public void updateDateTable(DataTable table)
+		public void updateDataTable(DataTable table)
 		{
 			var sql = string.Format("select top 1 * from {0}", table.TableName);
 			SqlDataAdapter adapter = select(sql);
