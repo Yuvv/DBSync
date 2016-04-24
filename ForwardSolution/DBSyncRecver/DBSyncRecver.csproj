@@ -4,7 +4,7 @@
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{1F6EE0DF-2B83-45EE-9581-17D7D447D23D}</ProjectGuid>
+    <ProjectGuid>{F52770AF-3F68-49AF-8B6F-9CD7765F192C}</ProjectGuid>
     <OutputType>WinExe</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>DBSyncRecver</RootNamespace>
@@ -52,7 +52,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="Newtonsoft.Json, Version=8.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
-      <HintPath>..\packages\Newtonsoft.Json.8.0.3\lib\net20\Newtonsoft.Json.dll</HintPath>
+      <HintPath>..\..\packages\Newtonsoft.Json.8.0.3\lib\net20\Newtonsoft.Json.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="System" />
@@ -99,11 +99,11 @@
     <None Include="App.config" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\DBOps\DBOps.csproj">
+    <ProjectReference Include="..\..\DBOps\DBOps.csproj">
       <Project>{8236688f-1888-4318-a6a9-12ec1e245369}</Project>
       <Name>DBOps</Name>
     </ProjectReference>
-    <ProjectReference Include="..\FileParser\FileParser.csproj">
+    <ProjectReference Include="..\..\FileParser\FileParser.csproj">
       <Project>{00e32c9e-4e15-4be2-82ba-4aeb9b2066fd}</Project>
       <Name>FileParser</Name>
     </ProjectReference>
