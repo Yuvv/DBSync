@@ -1,8 +1,10 @@
 # output files
-*/bin/
-*/obj/
+**/bin/
+**/obj/
 *.dll
 *.pdb
+*.exe
+*.cache
 
 # VS FILES
 *.suo
