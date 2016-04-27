@@ -9,7 +9,7 @@ create table trigger4sillytable1 (
 	col5 nvarchar(100)
 );
 
---RMF表的insert触发器
+--sillytable1表的insert触发器
 create trigger sillytable1_insert on sillytable1
 for insert as
 begin
