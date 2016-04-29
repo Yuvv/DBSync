@@ -109,24 +109,24 @@
 			// 
 			this.tcpServerPort.Location = new System.Drawing.Point(65, 62);
 			this.tcpServerPort.Maximum = new decimal(new int[] {
-            65535,
-            0,
-            0,
-            0});
+			65535,
+			0,
+			0,
+			0});
 			this.tcpServerPort.Minimum = new decimal(new int[] {
-            1025,
-            0,
-            0,
-            0});
+			1025,
+			0,
+			0,
+			0});
 			this.tcpServerPort.Name = "tcpServerPort";
 			this.tcpServerPort.Size = new System.Drawing.Size(100, 21);
 			this.tcpServerPort.TabIndex = 26;
 			this.tips.SetToolTip(this.tcpServerPort, "TCP服务器监听端口");
 			this.tcpServerPort.Value = new decimal(new int[] {
-            54321,
-            0,
-            0,
-            0});
+			54321,
+			0,
+			0,
+			0});
 			// 
 			// label9
 			// 
@@ -204,24 +204,24 @@
 			// 
 			this.dbPort.Location = new System.Drawing.Point(80, 47);
 			this.dbPort.Maximum = new decimal(new int[] {
-            65535,
-            0,
-            0,
-            0});
+			65535,
+			0,
+			0,
+			0});
 			this.dbPort.Minimum = new decimal(new int[] {
-            1025,
-            0,
-            0,
-            0});
+			1025,
+			0,
+			0,
+			0});
 			this.dbPort.Name = "dbPort";
 			this.dbPort.Size = new System.Drawing.Size(100, 21);
 			this.dbPort.TabIndex = 4;
 			this.tips.SetToolTip(this.dbPort, "数据库监听端口");
 			this.dbPort.Value = new decimal(new int[] {
-            1433,
-            0,
-            0,
-            0});
+			1433,
+			0,
+			0,
+			0});
 			// 
 			// password
 			// 
@@ -343,8 +343,8 @@
 			// contextMenuStrip1
 			// 
 			this.contextMenuStrip1.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
-            this.showWinToolStripMenuItem,
-            this.exitToolStripMenuItem});
+			this.showWinToolStripMenuItem,
+			this.exitToolStripMenuItem});
 			this.contextMenuStrip1.Name = "contextMenuStrip1";
 			this.contextMenuStrip1.Size = new System.Drawing.Size(125, 48);
 			// 

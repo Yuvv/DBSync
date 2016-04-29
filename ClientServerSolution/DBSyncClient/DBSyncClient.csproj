@@ -4,11 +4,11 @@
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{1F6EE0DF-2B83-45EE-9581-17D7D447D23D}</ProjectGuid>
+    <ProjectGuid>{78BBEA8F-6BC2-44DC-A4A7-5C9BFDBF0B4C}</ProjectGuid>
     <OutputType>WinExe</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>DBSyncServer</RootNamespace>
-    <AssemblyName>DBSyncServer</AssemblyName>
+    <RootNamespace>DBSyncClient</RootNamespace>
+    <AssemblyName>DBSyncClient</AssemblyName>
     <TargetFrameworkVersion>v2.0</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <TargetFrameworkProfile />
@@ -45,14 +45,17 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Server.cs">
+    <Compile Include="Client.cs">
       <SubType>Form</SubType>
     </Compile>
-    <Compile Include="Server.Designer.cs">
-      <DependentUpon>Server.cs</DependentUpon>
+    <Compile Include="Client.Designer.cs">
+      <DependentUpon>Client.cs</DependentUpon>
     </Compile>
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <EmbeddedResource Include="Client.resx">
+      <DependentUpon>Client.cs</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="Properties\Resources.resx">
       <Generator>ResXFileCodeGenerator</Generator>
       <LastGenOutput>Resources.Designer.cs</LastGenOutput>
@@ -63,9 +66,6 @@
       <DependentUpon>Resources.resx</DependentUpon>
       <DesignTime>True</DesignTime>
     </Compile>
-    <EmbeddedResource Include="Server.resx">
-      <DependentUpon>Server.cs</DependentUpon>
-    </EmbeddedResource>
     <None Include="packages.config" />
     <None Include="Properties\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>
@@ -81,11 +81,11 @@
     <None Include="App.config" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\DBOps\DBOps.csproj">
+    <ProjectReference Include="..\..\DBOps\DBOps.csproj">
       <Project>{8236688f-1888-4318-a6a9-12ec1e245369}</Project>
       <Name>DBOps</Name>
     </ProjectReference>
-    <ProjectReference Include="..\FileParser\FileParser.csproj">
+    <ProjectReference Include="..\..\FileParser\FileParser.csproj">
       <Project>{00e32c9e-4e15-4be2-82ba-4aeb9b2066fd}</Project>
       <Name>FileParser</Name>
     </ProjectReference>
