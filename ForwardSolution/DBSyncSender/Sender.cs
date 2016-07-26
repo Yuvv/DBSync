@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Threading;
 using System.Collections.Generic;
 using System.Collections.Specialized;
@@ -42,8 +42,7 @@ namespace DBSyncSender
 
 			if (this.modeWin.Checked)
 			{
-				var server = this.dbServerName.Text;
-				builder.Add("Data Source", server);
+				builder.Add("Data Source", this.dbServerName.Text);
 				builder.Add("Integrated Security", "SSPI");
 			}
 			else
@@ -99,7 +98,7 @@ namespace DBSyncSender
 				this.log("Detect changes in table " + item.tableName);
 				this.localTable = this.dbConn.getTable(realTableName);
 
-				string sql = string.Format("select top {0} * from {1} where {2}>{3}",
+				string sql = string.Format("select top {0} * from [{1}] where {2}>{3}",
 					maxSize, realTableName, item.identColumn, item.lastID);
 				SqlDataAdapter adapter = this.dbConn.select(sql);
 				adapter.Fill(this.localTable);
