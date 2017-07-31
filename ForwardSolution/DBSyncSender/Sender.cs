@@ -11,10 +11,8 @@ using Newtonsoft.Json;
 using System.IO;
 using System.Net.Sockets;
 
-namespace DBSyncSender
-{
-	public partial class Sender : Form
-	{
+namespace DBSyncSender {
+	public partial class Sender: Form {
 		private TcpClient client;
 		private NetworkStream stream2Server;
 		private StreamReader reader;
@@ -29,24 +27,19 @@ namespace DBSyncSender
 
 		private Thread waitThread;
 
-		public Sender()
-		{
+		public Sender() {
 			InitializeComponent();
 		}
 
-		private string getConnStr()
-		{
+		private string getConnStr() {
 			// 参数详见 https://msdn.microsoft.com/en-us/library/system.data.sqlclient.sqlconnection.connectionstring%28v=vs.110%29.aspx
 
 			SqlConnectionStringBuilder builder = new SqlConnectionStringBuilder();
 
-			if (this.modeWin.Checked)
-			{
+			if (this.modeWin.Checked) {
 				builder.Add("Data Source", this.dbServerName.Text);
 				builder.Add("Integrated Security", "SSPI");
-			}
-			else
-			{
+			} else {
 				builder.Add("Data Source", this.dbIP.Text + "," + this.dbPort.Value.ToString());
 				builder.Add("User ID", this.userName.Text);
 				builder.Add("Password", this.password.Text);
@@ -60,10 +53,8 @@ namespace DBSyncSender
 
 		// 给其它线程操作日志的委托
 		private delegate void logDelegate(string logStr);
-		private void log(string logStr)
-		{
-			if (this.logInfoBox.InvokeRequired)
-			{
+		private void log(string logStr) {
+			if (this.logInfoBox.InvokeRequired) {
 				logDelegate logD = new logDelegate(log);
 				this.BeginInvoke(logD, new object[] { logStr });
 				return;
@@ -74,27 +65,23 @@ namespace DBSyncSender
 			this.logInfoBox.ScrollToCaret();
 		}
 
-		private int getLastID(TableItem item)
-		{
+		private int getLastID(TableItem item) {
 			var currentID = item.lastID;
 			var realTableName = item.plusItem ? ("trigger4" + item.tableName) : item.tableName;
 
 			object obj = this.dbConn.scalar(
 				string.Format("select ident_current('{0}')", realTableName));
-			if (obj != null)
-			{
+			if (obj != null) {
 				currentID = int.Parse(obj.ToString());
 			}
 
 			return currentID;
 		}
 
-		private bool getRecords(TableItem item, int maxSize = 50)
-		{
+		private bool getRecords(TableItem item, int maxSize = 50) {
 			var currentID = getLastID(item);
 			var realTableName = item.plusItem ? ("trigger4" + item.tableName) : item.tableName;
-			if (item.lastID < currentID)
-			{
+			if (item.lastID < currentID) {
 				this.log("Detect changes in table " + item.tableName);
 				this.localTable = this.dbConn.getTable(realTableName);
 
@@ -108,23 +95,17 @@ namespace DBSyncSender
 				this.log("Get " + rows + " records.");
 
 				// 更新lastID
-				if (rows == 0)
-				{
+				if (rows == 0) {
 					item.lastID = currentID;
 					return false;
 				}
 
 				return true;
-			}
-			else
-			{
-				if (item.backoffCycle > 16)
-				{
+			} else {
+				if (item.backoffCycle > 16) {
 					item.backoffTime = 0;
 					item.backoffCycle = 2;
-				}
-				else
-				{
+				} else {
 					item.backoffTime = item.backoffCycle;
 					item.backoffCycle *= 2;
 				}
@@ -133,12 +114,9 @@ namespace DBSyncSender
 		}
 
 		// 启动连接
-		private void btnLink_Click(object sender, EventArgs e)
-		{
-			try
-			{
-				if (!this.dbConnected)
-				{
+		private void btnLink_Click(object sender, EventArgs e) {
+			try {
+				if (!this.dbConnected) {
 					this.dbConn.connect(getConnStr());
 					this.dbConnected = true;
 					this.log("Connect to database succeed!");
@@ -161,49 +139,35 @@ namespace DBSyncSender
 				this.waitThread = new Thread(this.startLink);
 				this.waitThread.IsBackground = true;
 				this.waitThread.Start();
-			}
-			catch (SocketException ex)
-			{
+			} catch (SocketException ex) {
 				MessageBox.Show("连接到tcp server失败！\n" + ex.Message);
 				this.log(ex.Message);
-			}
-			catch (SqlException ex)
-			{
+			} catch (SqlException ex) {
 				MessageBox.Show("连接到数据库失败！\n" + ex.Message);
 				this.log(ex.Message);
-			}
-			catch (Exception ex)
-			{
+			} catch (Exception ex) {
 				this.log(ex.Message);
 			}
 		}
 
 		// 关闭连接
-		private void btnExit_Click(object sender, EventArgs e)
-		{
+		private void btnExit_Click(object sender, EventArgs e) {
 			this.log("Now stop synchrony...");
-			if (this.dbConnected)
-			{
+			if (this.dbConnected) {
 				this.dbConn.close();
 				this.dbConnected = false;
 			}
-			if (this.tcpConnected)
-			{
-				if (this.waitThread.ThreadState != ThreadState.Unstarted)
-				{
+			if (this.tcpConnected) {
+				if (this.waitThread.ThreadState != ThreadState.Unstarted) {
 					this.waitThread.Abort();
 				}
-				try
-				{
+				try {
 					this.writer.WriteLine("88");		// 主动say 88
-				}
-				catch (Exception ex)
-				{
+				} catch (Exception ex) {
 					this.log("[ERROR] " + ex.Message);
 				}
 				this.timer.Stop();
-				if (this.client.Client.Connected)
-				{
+				if (this.client.Client.Connected) {
 					this.client.Close();
 				}
 				this.tcpConnected = false;
@@ -213,8 +177,7 @@ namespace DBSyncSender
 
 			// write lastIDs back
 			IniFile ini = new IniFile("Config.ini");
-			foreach (var item in this.tableItems)
-			{
+			foreach (var item in this.tableItems) {
 				string sectionName = item.plusItem ? "LastIDPlus" : "LastID";
 				ini.WriteString(sectionName, item.tableName,
 					item.identColumn + "," + item.lastID.ToString());
@@ -223,10 +186,8 @@ namespace DBSyncSender
 
 		// 给其它线程执行exit函数的委托
 		private delegate void clientDelegate();
-		private void stopLink()
-		{
-			if (this.logInfoBox.InvokeRequired)
-			{
+		private void stopLink() {
+			if (this.logInfoBox.InvokeRequired) {
 				clientDelegate timerD = new clientDelegate(stopLink);
 				this.BeginInvoke(timerD);
 				return;
@@ -237,32 +198,23 @@ namespace DBSyncSender
 		}
 
 		// 等待recver临时线程
-		private void startLink()
-		{
-			try
-			{
+		private void startLink() {
+			try {
 				this.log("Waiting for start signal...");
 				this.writer.WriteLine("sender");
 				string signal = this.reader.ReadLine();
-				if (string.IsNullOrEmpty(signal) || signal != "OK")
-				{
+				if (string.IsNullOrEmpty(signal) || signal != "OK") {
 					this.log("Link failed! Please restart.");
 					this.stopLink();
-				}
-				else
-				{
+				} else {
 					// 启动计时器
 					this.log("Now starting...");
 					this.startTimer();
 					this.client.ReceiveTimeout = 30000;		// 超时时间30s
 				}
-			}
-			catch (ThreadAbortException)
-			{
+			} catch (ThreadAbortException) {
 				this.log("Stop Waiting.");
-			}
-			catch (Exception ex)
-			{
+			} catch (Exception ex) {
 				this.log("[ERROR] " + ex.Message);
 				this.stopLink();
 			}
@@ -270,10 +222,8 @@ namespace DBSyncSender
 
 		// 给startLink线程启动计时器的委托
 		private delegate void timerDelegate();
-		private void startTimer()
-		{
-			if (this.logInfoBox.InvokeRequired)
-			{
+		private void startTimer() {
+			if (this.logInfoBox.InvokeRequired) {
 				timerDelegate timerD = new timerDelegate(startTimer);
 				this.BeginInvoke(timerD);
 				return;
@@ -283,26 +233,20 @@ namespace DBSyncSender
 		}
 
 		// timer回调
-		private void timer_Tick(object sender, EventArgs e)
-		{
+		private void timer_Tick(object sender, EventArgs e) {
 			DataSet ds = new DataSet();
 			string respStr = string.Empty;
-			try
-			{
-				foreach (var item in this.tableItems)
-				{
-					if (item.backoffTime > 0)
-					{
+			try {
+				foreach (var item in this.tableItems) {
+					if (item.backoffTime > 0) {
 						this.log(item.tableName + " doesn't change. backoff time changed!");
 						item.backoffTime -= 1;
 						continue;
 					}
-					if (getRecords(item))
-					{
+					if (getRecords(item)) {
 						var maxid = this.localTable.Rows[this.localTable.Rows.Count - 1][item.identColumn].ToString();
 						this.log(string.Format("Local max ID in table {0} is {1}.", item.tableName, maxid));
-						if (item.plusItem)
-						{
+						if (item.plusItem) {
 							this.localTable.Columns.Remove(item.identColumn);
 							this.localTable.TableName = item.tableName;
 						}
@@ -315,11 +259,9 @@ namespace DBSyncSender
 						this.localTable.Dispose();
 
 						respStr = this.reader.ReadLine();
-						if (!string.IsNullOrEmpty(respStr))
-						{
+						if (!string.IsNullOrEmpty(respStr)) {
 							// recver关闭连接
-							if (respStr == "88")
-							{
+							if (respStr == "88") {
 								ds.Dispose();
 								this.log("Recver closed!");
 								this.stopLink();	// auto restart
@@ -328,10 +270,8 @@ namespace DBSyncSender
 							this.log("response string is " + respStr);
 
 							string[] resp = respStr.Split(':');
-							if (resp.Length > 1 && resp[0] == item.tableName)
-							{
-								if (item.lastID < int.Parse(resp[1]))
-								{
+							if (resp.Length > 1 && resp[0] == item.tableName) {
+								if (item.lastID < int.Parse(resp[1])) {
 									item.lastID = int.Parse(resp[1]);
 								}
 							}
@@ -340,17 +280,14 @@ namespace DBSyncSender
 					ds.Tables.Clear();
 					ds.Dispose();
 				}
-			}
-			catch (Exception ex)
-			{
+			} catch (Exception ex) {
 				this.log("[ERROR] " + ex.Message);
 				this.stopLink();
 			}
 		}
 
 		// 启动时加载配置
-		private void Client_Load(object sender, EventArgs e)
-		{
+		private void Client_Load(object sender, EventArgs e) {
 			IniFile ini = new IniFile("Config.ini");
 			this.dbServerName.Text = ini.ReadString("DBConnection", "Server", ".");
 			this.dbName.Text = ini.ReadString("DBConnection", "DB", "");
@@ -362,14 +299,11 @@ namespace DBSyncSender
 			this.tcpServerPort.Value = ini.ReadInteger("TCPServer", "Port", 54321);
 			this.syncCycle.Value = ini.ReadInteger("SyncConfig", "Cycle", 5);
 			var mode = ini.ReadInteger("DBConnection", "Mode", 1);
-			if (0 == mode)
-			{
+			if (0 == mode) {
 				this.modeSql.Checked = false;
 				this.modeWin.Checked = true;
 				this.dbGroupBox.Enabled = false;
-			}
-			else
-			{
+			} else {
 				this.modeSql.Checked = true;
 				this.modeWin.Checked = false;
 				this.dbServerName.Enabled = false;
@@ -380,8 +314,7 @@ namespace DBSyncSender
 			this.tableItems = new List<TableItem>();
 			NameValueCollection values = new NameValueCollection();
 			ini.ReadSectionValues("LastID", values);
-			foreach (string key in values.Keys)
-			{
+			foreach (string key in values.Keys) {
 				string col = values.Get(key).Split(',')[0];
 				int id = int.Parse(values.Get(key).Split(',')[1]);
 				this.tableItems.Add(new TableItem(key, col, id));
@@ -391,8 +324,7 @@ namespace DBSyncSender
 			// init last syncID plus and back-off time
 			values.Clear();
 			ini.ReadSectionValues("LastIDPlus", values);
-			foreach (string key in values.Keys)
-			{
+			foreach (string key in values.Keys) {
 				string col = values.Get(key).Split(',')[0];
 				int id = int.Parse(values.Get(key).Split(',')[1]);
 				this.tableItems.Add(new TableItem(key, col, id, true));
@@ -403,22 +335,17 @@ namespace DBSyncSender
 			this.dbConn = new MsSqlOps();
 		}
 
-		private void modeSql_CheckedChanged(object sender, EventArgs e)
-		{
-			if (this.modeSql.Checked)
-			{
+		private void modeSql_CheckedChanged(object sender, EventArgs e) {
+			if (this.modeSql.Checked) {
 				this.dbGroupBox.Enabled = true;
 				this.dbServerName.Enabled = false;
-			}
-			else
-			{
+			} else {
 				this.dbGroupBox.Enabled = false;
 				this.dbServerName.Enabled = true;
 			}
 		}
 
-		private void btnSaveConfig_Click(object sender, EventArgs e)
-		{
+		private void btnSaveConfig_Click(object sender, EventArgs e) {
 			IniFile ini = new IniFile("Config.ini");
 			var mode = (this.modeWin.Checked) ? 0 : 1;
 			ini.WriteInteger("DBConnection", "Mode", mode);
@@ -438,10 +365,8 @@ namespace DBSyncSender
 			this.log("Configure write done!");
 		}
 
-		private void Client_Resize(object sender, EventArgs e)
-		{
-			if (this.WindowState == FormWindowState.Minimized)
-			{
+		private void Client_Resize(object sender, EventArgs e) {
+			if (this.WindowState == FormWindowState.Minimized) {
 				this.WindowState = FormWindowState.Minimized;
 				this.ShowInTaskbar = false;
 				this.Hide();
@@ -450,10 +375,8 @@ namespace DBSyncSender
 			}
 		}
 
-		private void myNotify_DoubleClick(object sender, EventArgs e)
-		{
-			if (this.ShowInTaskbar == false)
-			{
+		private void myNotify_DoubleClick(object sender, EventArgs e) {
+			if (this.ShowInTaskbar == false) {
 				this.ShowInTaskbar = true;
 				this.myNotify.Visible = false;
 				this.Show();
@@ -462,21 +385,17 @@ namespace DBSyncSender
 			}
 		}
 
-		private void showWinToolStripMenuItem_Click(object sender, EventArgs e)
-		{
+		private void showWinToolStripMenuItem_Click(object sender, EventArgs e) {
 			myNotify_DoubleClick(sender, e);
 		}
 
-		private void exitToolStripMenuItem_Click(object sender, EventArgs e)
-		{
+		private void exitToolStripMenuItem_Click(object sender, EventArgs e) {
 			this.Close();
 		}
 
 		// 关闭连接并退出
-		private void Client_FormClosing(object sender, FormClosingEventArgs e)
-		{
-			if (this.tcpConnected)
-			{
+		private void Client_FormClosing(object sender, FormClosingEventArgs e) {
+			if (this.tcpConnected) {
 				MessageBox.Show(
 					"与服务器的连接尚未关闭，请先关闭再退出！",
 					"别乱关", MessageBoxButtons.OK);
@@ -486,8 +405,7 @@ namespace DBSyncSender
 			}
 
 			// 备份日志
-			if (this.logInfoBox.Lines.Length > 0)
-			{
+			if (this.logInfoBox.Lines.Length > 0) {
 				StreamWriter log = new StreamWriter("Sender.log", true);
 				log.Write(this.logInfoBox.Text);
 				log.Close();
@@ -495,10 +413,8 @@ namespace DBSyncSender
 		}
 
 		// 每10分钟检测日志长度是否超过5000行，超过则备份日志
-		private void timerForLog_Tick(object sender, EventArgs e)
-		{
-			if (this.logInfoBox.Lines.Length > 5000)
-			{
+		private void timerForLog_Tick(object sender, EventArgs e) {
+			if (this.logInfoBox.Lines.Length > 5000) {
 				StreamWriter log = new StreamWriter("Sender.log", true);
 				log.Write(this.logInfoBox.Text);
 				log.WriteLine("\n\n");
@@ -506,8 +422,7 @@ namespace DBSyncSender
 				this.logInfoBox.Text = "";
 			}
 			FileInfo fInfo = new FileInfo("Sender.log");
-			if (fInfo.Length > 10 * 1024 * 1024)
-			{
+			if (fInfo.Length > 10 * 1024 * 1024) {
 				// 大于10MB进行归档
 				fInfo.MoveTo(string.Format("Sender-{0}.log",
 					DateTime.Now.ToString("yyMMdd-HHmmss")));

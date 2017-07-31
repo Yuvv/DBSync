@@ -4,14 +4,15 @@
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{282A5542-4575-4D46-B241-3DA93A0D7FB4}</ProjectGuid>
+    <ProjectGuid>{6D4B8EA1-605B-4A6A-AEE2-B14D14775BF8}</ProjectGuid>
     <OutputType>WinExe</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>DBSyncSender</RootNamespace>
-    <AssemblyName>DBSyncSender</AssemblyName>
+    <RootNamespace>DBSync</RootNamespace>
+    <AssemblyName>DBSync</AssemblyName>
     <TargetFrameworkVersion>v2.0</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <TargetFrameworkProfile />
+    <NuGetPackageImportStamp>05972728</NuGetPackageImportStamp>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <PlatformTarget>AnyCPU</PlatformTarget>
@@ -32,37 +33,49 @@
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
-  <PropertyGroup>
-    <ApplicationIcon>sender.ico</ApplicationIcon>
-  </PropertyGroup>
   <ItemGroup>
     <Reference Include="log4net, Version=1.2.15.0, Culture=neutral, PublicKeyToken=669e0ddf0bb1aa2a, processorArchitecture=MSIL">
-      <HintPath>..\..\packages\log4net.2.0.5\lib\net20-full\log4net.dll</HintPath>
+      <HintPath>..\packages\log4net.2.0.5\lib\net20-full\log4net.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="Newtonsoft.Json, Version=8.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
-      <HintPath>..\..\packages\Newtonsoft.Json.8.0.3\lib\net20\Newtonsoft.Json.dll</HintPath>
+      <HintPath>..\packages\Newtonsoft.Json.8.0.3\lib\net20\Newtonsoft.Json.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Data" />
     <Reference Include="System.Deployment" />
+    <Reference Include="System.DirectoryServices" />
     <Reference Include="System.Drawing" />
     <Reference Include="System.Windows.Forms" />
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Sender.cs">
+    <Compile Include="DBSync.cs">
       <SubType>Form</SubType>
     </Compile>
-    <Compile Include="Sender.Designer.cs">
-      <DependentUpon>Sender.cs</DependentUpon>
+    <Compile Include="DBSync.Designer.cs">
+      <DependentUpon>DBSync.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Login.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Login.Designer.cs">
+      <DependentUpon>Login.cs</DependentUpon>
     </Compile>
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="TableItem.cs" />
-    <EmbeddedResource Include="Sender.resx">
-      <DependentUpon>Sender.cs</DependentUpon>
+    <Compile Include="TableSetting.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="TableSetting.Designer.cs">
+      <DependentUpon>TableSetting.cs</DependentUpon>
+    </Compile>
+    <EmbeddedResource Include="DBSync.resx">
+      <DependentUpon>DBSync.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Login.resx">
+      <DependentUpon>Login.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="Properties\Resources.resx">
       <Generator>ResXFileCodeGenerator</Generator>
@@ -74,7 +87,9 @@
       <DependentUpon>Resources.resx</DependentUpon>
       <DesignTime>True</DesignTime>
     </Compile>
-    <None Include="Config.ini" />
+    <EmbeddedResource Include="TableSetting.resx">
+      <DependentUpon>TableSetting.cs</DependentUpon>
+    </EmbeddedResource>
     <None Include="packages.config" />
     <None Include="Properties\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>
@@ -88,19 +103,6 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\..\DBOps\DBOps.csproj">
-      <Project>{8236688f-1888-4318-a6a9-12ec1e245369}</Project>
-      <Name>DBOps</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\..\FileParser\FileParser.csproj">
-      <Project>{00e32c9e-4e15-4be2-82ba-4aeb9b2066fd}</Project>
-      <Name>FileParser</Name>
-    </ProjectReference>
-  </ItemGroup>
-  <ItemGroup>
-    <Content Include="sender.ico" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
